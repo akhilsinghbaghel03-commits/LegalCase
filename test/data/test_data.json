@@ -1,0 +1,38 @@
+{
+  "registration": {
+    "invalid_emails": [
+      {"email": "plainaddress", "expected_error": "Invalid email"},
+      {"email": "@no-local-part.com", "expected_error": "Invalid email"},
+      {"email": "Outlook Contact <outlook@domain.com>", "expected_error": "Invalid email"},
+      {"email": "no-at.domain.com", "expected_error": "Invalid email"},
+      {"email": "no-tld@domain", "expected_error": "Invalid email"}
+    ],
+    "weak_passwords": [
+      {"password": "password", "expected_error": "Password is too weak"},
+      {"password": "123", "expected_error": "Password must be at least 8 characters"},
+      {"password": "NoSpecialChar123", "expected_error": "Requires special character"},
+      {"password": "nouppercase123!", "expected_error": "Requires uppercase letter"}
+    ],
+    "invalid_phone_numbers": [
+      {"phone": "123", "expected_error": "Invalid phone number"},
+      {"phone": "abcdef", "expected_error": "Invalid phone number"},
+      {"phone": "555-555-5555", "expected_error": "Invalid phone number"}
+    ]
+  },
+  "login": {
+    "invalid_credentials": [
+      {"email": "nonexistent@domain.com", "password": "TestPassword123!@#", "expected_error": "Invalid credentials"},
+      {"email": "valid@domain.com", "password": "WrongPassword123!", "expected_error": "Invalid credentials"}
+    ],
+    "security_payloads": [
+      {"email": "test@test.com' OR '1'='1", "password": "password", "expected_error": "Invalid email"},
+      {"email": "<script>alert('xss')</script>@domain.com", "password": "password", "expected_error": "Invalid email"}
+    ]
+  },
+  "forgot_password": {
+    "invalid_emails": [
+      {"email": "unregistered@domain.com", "expected_error": "Email not found"},
+      {"email": "invalidformat", "expected_error": "Invalid email"}
+    ]
+  }
+}

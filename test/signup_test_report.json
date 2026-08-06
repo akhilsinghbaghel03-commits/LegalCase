@@ -1,0 +1,10 @@
+{
+  "api_results": {
+    "test_name": "API-Based Signup Test",
+    "timestamp": "2026-07-28T13:39:40.361521",
+    "email_used": "user_20260728133940_1148@guerrillamail.com",
+    "response_code": 404,
+    "status": "failed",
+    "errors": "Unexpected status: 404 - "
+  }
+}
