@@ -90,9 +90,9 @@ def test_registration_invalid_email(driver_setup, invalid_email):
     """Verify email format validation fails with invalid emails."""
     driver, wait = driver_setup
     driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
-    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='email']")))
+    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='Input_UserEmail']")))
     
-    email_field = driver.find_element(By.XPATH, "//input[@type='email']")
+    email_field = driver.find_element(By.XPATH, "//input[@id='Input_UserEmail']")
     email_field.send_keys(invalid_email)
     
     # Trigger validation by clicking away
