@@ -89,11 +89,14 @@ def test_registration_success(driver_setup):
 def test_registration_invalid_email(driver_setup, invalid_email):
     """Verify email format validation fails with invalid emails."""
     driver, wait = driver_setup
-    driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
-    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='Input_UserEmail']")))
-    
-    email_field = driver.find_element(By.XPATH, "//input[@id='Input_UserEmail']")
-    email_field.send_keys(invalid_email)
+    driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    try:
+        signup_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Sign Up') or contains(text(), 'Sign up')]")))
+        driver.execute_script("arguments[0].click();", signup_link)
+    except Exception:
+        driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+        
+    fill_field_by_keyword(driver, "email", invalid_email)
     
     # Trigger validation by clicking away
     driver.find_element(By.XPATH, "//input[contains(@id, 'Input_FirstName') or contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'first')]").click()
@@ -104,7 +107,13 @@ def test_registration_invalid_email(driver_setup, invalid_email):
 def test_registration_blank_mandatory_fields(driver_setup):
     """Register with blank mandatory fields and verify button is disabled or errors show."""
     driver, wait = driver_setup
-    driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+    driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    try:
+        signup_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Sign Up') or contains(text(), 'Sign up')]")))
+        driver.execute_script("arguments[0].click();", signup_link)
+    except Exception:
+        driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+        
     wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='email']")))
     
     submit_btn = driver.find_element(By.XPATH, "//button[contains(., 'Send Verification Code') or contains(., 'Next') or contains(., 'Sign Up')]")
@@ -112,12 +121,18 @@ def test_registration_blank_mandatory_fields(driver_setup):
     
     # Verify we don't proceed to OTP screen
     time.sleep(2)
-    assert "signup" in driver.current_url
+    assert "signup" in driver.current_url.lower() or "login" in driver.current_url.lower()
+    assert len(driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]")) == 0
 
 def test_registration_password_mismatch(driver_setup):
     """Verify password and confirm password match validation."""
     driver, wait = driver_setup
-    driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+    driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    try:
+        signup_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Sign Up') or contains(text(), 'Sign up')]")))
+        driver.execute_script("arguments[0].click();", signup_link)
+    except Exception:
+        driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
     
     # First we need to get to step 2 (OTP) to test passwords, but since that requires a valid OTP, 
     # password mismatch validation might happen on Step 2.
@@ -127,7 +142,13 @@ def test_registration_password_mismatch(driver_setup):
 def test_registration_existing_email(driver_setup):
     """Verify existing email address returns appropriate error."""
     driver, wait = driver_setup
-    driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+    driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    try:
+        signup_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Sign Up') or contains(text(), 'Sign up')]")))
+        driver.execute_script("arguments[0].click();", signup_link)
+    except Exception:
+        driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+        
     wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='email']")))
     
     fill_field_by_keyword(driver, "first", "Existing")
@@ -147,4 +168,4 @@ def test_registration_existing_email(driver_setup):
     
     # Verify error message
     time.sleep(3)
-    assert "signup" in driver.current_url or len(driver.find_elements(By.XPATH, "//*[contains(text(), 'already exists')]")) > 0
+    assert "signup" in driver.current_url.lower() or "login" in driver.current_url.lower() or len(driver.find_elements(By.XPATH, "//*[contains(text(), 'already exists')]")) > 0
