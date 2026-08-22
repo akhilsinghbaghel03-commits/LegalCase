@@ -93,21 +93,13 @@ def pytest_runtest_makereport(item, call):
 
 from test.utils.helpers import get_driver
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def driver_setup():
     driver, wait = get_driver()
     yield driver, wait
-    driver.quit()
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
-@pytest.fixture(autouse=True)
-def reset_browser_state(driver_setup):
-    driver, wait = driver_setup
-    yield
-    try:
-        driver.delete_all_cookies()
-    except Exception:
-        pass
-    try:
-        driver.execute_script("window.localStorage.clear(); window.sessionStorage.clear();")
-    except Exception:
-        pass
+

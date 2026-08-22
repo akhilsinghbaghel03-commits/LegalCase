@@ -44,11 +44,14 @@ if __name__ == "__main__":
             "test/test_registration.py", 
             "test/test_forgot_password.py", 
             "test/test_login_scenarios.py", 
+            "test/test_contact.py",
+            "test/test_matter.py",
             "-v", "-s", 
             "--html=report.html", 
             "--excelreport=report.xlsx"
         ]
         subprocess.run(pytest_cmd, check=False)
+
         
     finally:
         print(f"\nStopping screen recording...")

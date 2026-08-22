@@ -276,6 +276,9 @@ def test_signup():
     print(f"Generated Email: {email}")
     result["email_used"] = email
     
+    with open('shared_state.json', 'w') as f:
+        json.dump({"email": email, "password": password}, f)
+        
     chrome_options = Options()
     # chrome_options.add_argument("--headless=new") # Commented out so you can see the UI
     chrome_options.add_argument("--no-sandbox")
