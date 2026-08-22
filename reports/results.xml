@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="1" tests="4" time="109.923" timestamp="2026-08-22T19:41:30.410338+05:30" hostname="AkhilBaghel"><testcase classname="test.test_forgot_password" name="test_forgot_password_success" time="0.001"><skipped type="pytest.skip" message="Forgot Password API returns 'Account does not exist' for valid accounts in test environment">C:\Users\dell\Akhil_AI\test\test_forgot_password.py:13: Forgot Password API returns 'Account does not exist' for valid accounts in test environment</skipped></testcase><testcase classname="test.test_forgot_password" name="test_forgot_password_invalid_email[unregistered@domain.com]" time="42.807"><failure message="selenium.common.exceptions.TimeoutException: Message: &#10;Stacktrace:&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bdabb5+151b5]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bdac10+15210]&#10;&#09;chromedriver!(No symbol) [0x7ff794705d6d]&#10;&#09;chromedriver!(No symbol) [0x7ff794761289]&#10;&#09;chromedriver!(No symbol) [0x7ff79476158c]&#10;&#09;chromedriver!(No symbol) [0x7ff7947b2027]&#10;&#09;chromedriver!(No symbol) [0x7ff7947aec0b]&#10;&#09;chromedriver!(No symbol) [0x7ff7947537cc]&#10;&#09;chromedriver!(No symbol) [0x7ff7947546f3]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff7951fb79b+635d9b]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff7951f5ac6+6300c6]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff79521bcee+6562ee]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bf8ffe+335fe]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794c0147c+3ba7c]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794be4d64+1f364]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794be4ef4+1f4f4]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bc7d97+2397]&#10;&#09;KERNEL32!BaseThreadInitThunk [0x7ffbfff5e957+17]&#10;&#09;ntdll!RtlUserThreadStart [0x7ffc00bc7c1c+2c]">driver_setup = (&lt;selenium.webdriver.chrome.webdriver.WebDriver (session="dcaf3235903ef4e0a9e120c08ed1097f")&gt;, &lt;selenium.webdriver.support.wait.WebDriverWait (session="dcaf3235903ef4e0a9e120c08ed1097f")&gt;)
+invalid_email = 'unregistered@domain.com'
+
+    @pytest.mark.parametrize("invalid_email", INVALID_EMAILS)
+    def test_forgot_password_invalid_email(driver_setup, invalid_email):
+        """Verify forgot password fails with unregistered or invalid email."""
+        driver, wait = driver_setup
+        driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    
+&gt;       forgot_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(., 'Forgot Password')]")))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test\test_forgot_password.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;selenium.webdriver.support.wait.WebDriverWait (session="dcaf3235903ef4e0a9e120c08ed1097f")&gt;
+method = &lt;function element_to_be_clickable.&lt;locals&gt;._predicate at 0x000001EF0519B600&gt;
+message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -&gt; T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            &gt;&gt;&gt; from selenium.webdriver.common.by import By
+            &gt;&gt;&gt; from selenium.webdriver.support.wait import WebDriverWait
+            &gt;&gt;&gt; from selenium.webdriver.support import expected_conditions as EC
+            &gt;&gt;&gt;
+            &gt;&gt;&gt; # Wait until an element is visible on the page
+            &gt;&gt;&gt; wait = WebDriverWait(driver, 10)
+            &gt;&gt;&gt; element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            &gt;&gt;&gt; print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() &gt; end_time:
+                break
+            time.sleep(self._poll)
+&gt;       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       	chromedriver!GetHandleVerifier [0x7ff794bdabb5+151b5]
+E       	chromedriver!GetHandleVerifier [0x7ff794bdac10+15210]
+E       	chromedriver!(No symbol) [0x7ff794705d6d]
+E       	chromedriver!(No symbol) [0x7ff794761289]
+E       	chromedriver!(No symbol) [0x7ff79476158c]
+E       	chromedriver!(No symbol) [0x7ff7947b2027]
+E       	chromedriver!(No symbol) [0x7ff7947aec0b]
+E       	chromedriver!(No symbol) [0x7ff7947537cc]
+E       	chromedriver!(No symbol) [0x7ff7947546f3]
+E       	chromedriver!GetHandleVerifier [0x7ff7951fb79b+635d9b]
+E       	chromedriver!GetHandleVerifier [0x7ff7951f5ac6+6300c6]
+E       	chromedriver!GetHandleVerifier [0x7ff79521bcee+6562ee]
+E       	chromedriver!GetHandleVerifier [0x7ff794bf8ffe+335fe]
+E       	chromedriver!GetHandleVerifier [0x7ff794c0147c+3ba7c]
+E       	chromedriver!GetHandleVerifier [0x7ff794be4d64+1f364]
+E       	chromedriver!GetHandleVerifier [0x7ff794be4ef4+1f4f4]
+E       	chromedriver!GetHandleVerifier [0x7ff794bc7d97+2397]
+E       	KERNEL32!BaseThreadInitThunk [0x7ffbfff5e957+17]
+E       	ntdll!RtlUserThreadStart [0x7ffc00bc7c1c+2c]
+
+.venv\Lib\site-packages\selenium\webdriver\support\wait.py:121: TimeoutException</failure></testcase><testcase classname="test.test_forgot_password" name="test_forgot_password_invalid_email[invalidformat]" time="34.121"><failure message="selenium.common.exceptions.TimeoutException: Message: &#10;Stacktrace:&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bdabb5+151b5]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bdac10+15210]&#10;&#09;chromedriver!(No symbol) [0x7ff794705d6d]&#10;&#09;chromedriver!(No symbol) [0x7ff794761289]&#10;&#09;chromedriver!(No symbol) [0x7ff79476158c]&#10;&#09;chromedriver!(No symbol) [0x7ff7947b2027]&#10;&#09;chromedriver!(No symbol) [0x7ff7947aec0b]&#10;&#09;chromedriver!(No symbol) [0x7ff7947537cc]&#10;&#09;chromedriver!(No symbol) [0x7ff7947546f3]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff7951fb79b+635d9b]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff7951f5ac6+6300c6]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff79521bcee+6562ee]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bf8ffe+335fe]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794c0147c+3ba7c]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794be4d64+1f364]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794be4ef4+1f4f4]&#10;&#09;chromedriver!GetHandleVerifier [0x7ff794bc7d97+2397]&#10;&#09;KERNEL32!BaseThreadInitThunk [0x7ffbfff5e957+17]&#10;&#09;ntdll!RtlUserThreadStart [0x7ffc00bc7c1c+2c]">driver_setup = (&lt;selenium.webdriver.chrome.webdriver.WebDriver (session="26810fb6bc6adfb4e605456ac1ca6872")&gt;, &lt;selenium.webdriver.support.wait.WebDriverWait (session="26810fb6bc6adfb4e605456ac1ca6872")&gt;)
+invalid_email = 'invalidformat'
+
+    @pytest.mark.parametrize("invalid_email", INVALID_EMAILS)
+    def test_forgot_password_invalid_email(driver_setup, invalid_email):
+        """Verify forgot password fails with unregistered or invalid email."""
+        driver, wait = driver_setup
+        driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    
+&gt;       forgot_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(., 'Forgot Password')]")))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test\test_forgot_password.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;selenium.webdriver.support.wait.WebDriverWait (session="26810fb6bc6adfb4e605456ac1ca6872")&gt;
+method = &lt;function element_to_be_clickable.&lt;locals&gt;._predicate at 0x000001EF05332F20&gt;
+message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -&gt; T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            &gt;&gt;&gt; from selenium.webdriver.common.by import By
+            &gt;&gt;&gt; from selenium.webdriver.support.wait import WebDriverWait
+            &gt;&gt;&gt; from selenium.webdriver.support import expected_conditions as EC
+            &gt;&gt;&gt;
+            &gt;&gt;&gt; # Wait until an element is visible on the page
+            &gt;&gt;&gt; wait = WebDriverWait(driver, 10)
+            &gt;&gt;&gt; element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            &gt;&gt;&gt; print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() &gt; end_time:
+                break
+            time.sleep(self._poll)
+&gt;       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       	chromedriver!GetHandleVerifier [0x7ff794bdabb5+151b5]
+E       	chromedriver!GetHandleVerifier [0x7ff794bdac10+15210]
+E       	chromedriver!(No symbol) [0x7ff794705d6d]
+E       	chromedriver!(No symbol) [0x7ff794761289]
+E       	chromedriver!(No symbol) [0x7ff79476158c]
+E       	chromedriver!(No symbol) [0x7ff7947b2027]
+E       	chromedriver!(No symbol) [0x7ff7947aec0b]
+E       	chromedriver!(No symbol) [0x7ff7947537cc]
+E       	chromedriver!(No symbol) [0x7ff7947546f3]
+E       	chromedriver!GetHandleVerifier [0x7ff7951fb79b+635d9b]
+E       	chromedriver!GetHandleVerifier [0x7ff7951f5ac6+6300c6]
+E       	chromedriver!GetHandleVerifier [0x7ff79521bcee+6562ee]
+E       	chromedriver!GetHandleVerifier [0x7ff794bf8ffe+335fe]
+E       	chromedriver!GetHandleVerifier [0x7ff794c0147c+3ba7c]
+E       	chromedriver!GetHandleVerifier [0x7ff794be4d64+1f364]
+E       	chromedriver!GetHandleVerifier [0x7ff794be4ef4+1f4f4]
+E       	chromedriver!GetHandleVerifier [0x7ff794bc7d97+2397]
+E       	KERNEL32!BaseThreadInitThunk [0x7ffbfff5e957+17]
+E       	ntdll!RtlUserThreadStart [0x7ffc00bc7c1c+2c]
+
+.venv\Lib\site-packages\selenium\webdriver\support\wait.py:121: TimeoutException</failure></testcase><testcase classname="test.test_forgot_password" name="test_forgot_password_blank_email" time="31.945" /></testsuite></testsuites>
