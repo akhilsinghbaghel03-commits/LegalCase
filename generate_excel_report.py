@@ -1,6 +1,15 @@
 import os
+import sys
 import xml.etree.ElementTree as ET
-from openpyxl import Workbook
+
+# Ensure openpyxl is available, auto-installing if running on an environment without it
+try:
+    from openpyxl import Workbook
+except ImportError:
+    import subprocess
+    print("openpyxl not found. Installing openpyxl...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl"])
+    from openpyxl import Workbook
 
 
 XML_FILE = "reports/results.xml"

@@ -12,6 +12,25 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 
+def navigate_with_retry(driver, url, max_retries=4, delay=3):
+    """Navigate to a URL with automatic retries on momentary network/DNS disconnects."""
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            driver.get(url)
+            return
+        except Exception as e:
+            last_err = e
+            err_msg = str(e).lower()
+            if any(k in err_msg for k in ["err_name_not_resolved", "err_internet_disconnected", "err_connection", "timed out", "timeout"]):
+                print(f"Network glitch while navigating to {url} (Attempt {attempt+1}/{max_retries}): {e}. Retrying in {delay}s...")
+                time.sleep(delay)
+                continue
+            raise e
+    if last_err:
+        raise last_err
+
+
 def set_input_value(driver, element, value):
     """Reliably set input value in React / OutSystems Reactive applications."""
     try:
@@ -212,19 +231,19 @@ def delete_mail_tm_messages(token=None):
             f'http://api.guerrillamail.com/ajax.php?f=get_email_list&offset=0&sid_token={sid}',
             headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         )
-        res = json.loads(urllib.request.urlopen(req).read().decode())
+        res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode())
         email_ids = [msg['mail_id'] for msg in res.get('list', []) if msg['mail_id'] != 1]
         if email_ids:
-            ids_params = "&".join([f"email_ids[]={eid}" for eid in email_ids])
+            ids_str = "&".join([f"email_ids[]={mid}" for mid in email_ids])
             del_req = urllib.request.Request(
-                f'http://api.guerrillamail.com/ajax.php?f=del_email&{ids_params}&sid_token={sid}',
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'},
-                method='POST'
+                f'http://api.guerrillamail.com/ajax.php?f=del_email&{ids_str}&sid_token={sid}',
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
             )
-            urllib.request.urlopen(del_req)
+            urllib.request.urlopen(del_req, timeout=10).read()
             print(f"Deleted {len(email_ids)} messages.")
-    except Exception as e:
-        print(f"Failed to clear inbox: {e}")
+    except Exception:
+        pass
+
 
 
 def fill_stripe_form(driver, wait):
@@ -294,12 +313,13 @@ def register_new_user(driver, wait):
     with open('shared_state.json', 'w') as f:
         json.dump({"email": email, "password": password}, f)
         
-    driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Login")
     try:
         signup_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Sign Up') or contains(text(), 'Sign up')]")))
         driver.execute_script("arguments[0].click();", signup_link)
     except:
-        driver.get("https://yorpro-test.outsystems.app/legalhub/signup")
+        navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/signup")
+
         
     wait.until(EC.presence_of_element_located((By.TAG_NAME, "input")))
     time.sleep(2)
@@ -468,7 +488,8 @@ def perform_login(driver, wait, email=None, password=None):
         if "login" not in driver.current_url.lower() and "signup" not in driver.current_url.lower():
             return
             
-    driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+    navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Login")
+
     
     if "guerrillamail.com" in email:
         create_mail_tm_account(email, password)
@@ -551,8 +572,9 @@ def perform_login(driver, wait, email=None, password=None):
                 print("Login 2FA OTP delayed. Auto-registering a fresh active session...")
                 register_new_user(driver, wait)
                 if "login" in driver.current_url.lower():
-                    driver.get("https://yorpro-test.outsystems.app/legalhub/Dashboard")
+                    navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Dashboard")
                 return
+
 
 
             if otp_code:
@@ -584,7 +606,7 @@ def perform_login(driver, wait, email=None, password=None):
         print(f"Login did not advance for {email}. Auto-registering a fresh active session...")
         register_new_user(driver, wait)
         if "login" in driver.current_url.lower():
-            driver.get("https://yorpro-test.outsystems.app/legalhub/Dashboard")
+            navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Dashboard")
         time.sleep(2)
         return
 
@@ -592,14 +614,15 @@ def perform_login(driver, wait, email=None, password=None):
     try:
         WebDriverWait(driver, 20).until(lambda d: "login" not in d.current_url.lower() and "signup" not in d.current_url.lower())
     except Exception:
-        driver.get("https://yorpro-test.outsystems.app/legalhub/Dashboard")
+        navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Dashboard")
         time.sleep(2)
         if "login" in driver.current_url.lower():
             print("Session not active. Registering fresh user...")
             register_new_user(driver, wait)
-            driver.get("https://yorpro-test.outsystems.app/legalhub/Dashboard")
+            navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Dashboard")
         
     time.sleep(2)
+
 
 
 
