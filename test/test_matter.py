@@ -4,7 +4,8 @@ import json
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from test.utils.helpers import get_driver, fill_field, perform_login, set_input_value
+from test.utils.helpers import get_driver, fill_field, perform_login, set_input_value, navigate_with_retry
+
 
 def login(driver, wait):
     perform_login(driver, wait)
@@ -47,8 +48,9 @@ def test_matter_workflow(driver_setup):
         contact_link = WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.XPATH, "//*[contains(translate(text(), 'CONTACT', 'contact'), 'contact')] | //a[contains(@href, 'Contact')]")))
         driver.execute_script("arguments[0].click();", contact_link)
     except Exception:
-        driver.get("https://yorpro-test.outsystems.app/legalhub/Contact")
+        navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Contact")
     time.sleep(3)
+
     
     # --- NEW PERSON ---
     if not click_button_by_texts(["new person", "person"]):
@@ -99,8 +101,9 @@ def test_matter_workflow(driver_setup):
         matter_link = WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.XPATH, "//*[contains(translate(text(), 'MATTER', 'matter'), 'matter')] | //a[contains(@href, 'Matter')]")))
         driver.execute_script("arguments[0].click();", matter_link)
     except Exception:
-        driver.get("https://yorpro-test.outsystems.app/legalhub/Matter")
+        navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Matter")
     time.sleep(3)
+
 
     
     # Click New Matter

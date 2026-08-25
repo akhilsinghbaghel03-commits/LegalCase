@@ -98,13 +98,17 @@ def get_driver():
     chrome_options.add_argument("--incognito")
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--remote-allow-origins=*")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
-    # chrome_options.add_argument("--headless") # Uncomment to run headlessly
     
     driver = webdriver.Chrome(options=chrome_options)
     wait = WebDriverWait(driver, 20)
     return driver, wait
+
 
 def safe_urlopen(req, max_retries=5):
     for attempt in range(max_retries):
