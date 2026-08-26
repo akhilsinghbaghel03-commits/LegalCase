@@ -23,14 +23,15 @@ def test_matter_workflow(driver_setup):
     3. Create a Company with valid data.
     4. Navigate to Matter module.
     5. Click 'New Matter'.
-    6. Select Client (the created person or client option).
-    7. Enter Description.
-    8. Select Open Date.
-    9. Select Close Date.
-    10. Select Responsible Person.
-    11. Select Origination Person.
-    12. Click Save button.
-    13. Click on the newly generated Matter ID link.
+    6. Select Client (the created person or client option) (5s sleep).
+    7. Enter Description (5s sleep).
+    8. Select Open Date (5s sleep).
+    9. Select Close Date (5s sleep).
+    10. Select Responsible Person (5s sleep).
+    11. Select Origination Person (5s sleep).
+    12. Click Save / Create Matter button (5s sleep).
+    13. Click on the newly generated Matter ID link (2s sleep).
+    14. Click on the Edit button (5s sleep).
     """
     driver, wait = driver_setup
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -46,46 +47,52 @@ def test_matter_workflow(driver_setup):
     # 1. Login
     print("Logging in to LegalHub...")
     login(driver, wait)
-    time.sleep(2)
+    time.sleep(3)
 
     matter_page = MatterPage(driver)
     
-    def click_button_by_texts(texts):
-        for t in texts:
-            try:
-                xpath = f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{t.lower()}')] | //button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{t.lower()}')] | //a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{t.lower()}')]"
-                elems = driver.find_elements(By.XPATH, xpath)
-                for el in elems:
-                    if el.is_displayed():
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
-                        return True
-            except Exception:
-                pass
+    def click_button_by_texts(texts, retries=5):
+        for _ in range(retries):
+            for t in texts:
+                try:
+                    xpath = f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{t.lower()}')] | //button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{t.lower()}')] | //a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{t.lower()}')]"
+                    elems = driver.find_elements(By.XPATH, xpath)
+                    for el in elems:
+                        if el.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
+                            return True
+                except Exception:
+                    pass
+            time.sleep(1)
         return False
 
-    def fill_by_label(label_text, val):
+    def fill_by_label(label_text, val, retries=5):
         label_lower = label_text.lower()
         xpath = (
             f"//input[contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')] | "
             f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]/ancestor::div[contains(@class, 'form-group') or contains(@class, 'field') or contains(@class, 'margin')]//input | "
             f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]/following::input[1]"
         )
-        elems = driver.find_elements(By.XPATH, xpath)
-        for inp in elems:
-            if inp.is_displayed() and inp.get_attribute('type') != 'hidden':
-                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
-                time.sleep(0.3)
-                set_input_value(driver, inp, val)
-                return True
+        for _ in range(retries):
+            elems = driver.find_elements(By.XPATH, xpath)
+            for inp in elems:
+                if inp.is_displayed() and inp.get_attribute('type') != 'hidden':
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
+                    time.sleep(0.3)
+                    set_input_value(driver, inp, val)
+                    return True
+            time.sleep(1)
         return False
 
     # 2. Go to Contact module to create Person
     print("Navigating to Contact module...")
     try:
-        contact_link = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, "//*[contains(translate(text(), 'CONTACT', 'contact'), 'contact')] | //a[contains(@href, 'Contact')]"))
-        )
-        driver.execute_script("arguments[0].click();", contact_link)
+        contact_links = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'CONTACT', 'contact'), 'contact')] | //a[contains(@href, 'Contact')]")
+        visible_contacts = [l for l in contact_links if l.is_displayed()]
+        if visible_contacts:
+            driver.execute_script("arguments[0].click();", visible_contacts[0])
+        else:
+            navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Contact")
     except Exception:
         navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Contact")
     time.sleep(3)

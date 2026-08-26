@@ -493,7 +493,12 @@ def perform_login(driver, wait, email=None, password=None):
             return
             
     navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Login")
-
+    time.sleep(2)
+    
+    # Check if already authenticated and redirected away from login
+    if "login" not in driver.current_url.lower() and "signup" not in driver.current_url.lower():
+        print(f"Already logged in / active session detected (URL: {driver.current_url}).")
+        return
     
     if "guerrillamail.com" in email:
         create_mail_tm_account(email, password)
@@ -503,7 +508,14 @@ def perform_login(driver, wait, email=None, password=None):
         token = get_mail_tm_token(email, password)
         existing_mail_ids = []
         
-    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='Input_UserEmail' or @type='email']")))
+    try:
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='Input_UserEmail' or @type='email']")))
+    except Exception:
+        if "login" not in driver.current_url.lower() and "signup" not in driver.current_url.lower():
+            print(f"Redirected to active dashboard (URL: {driver.current_url}).")
+            return
+        raise
+
     email_inp = driver.find_element(By.XPATH, "//input[@id='Input_UserEmail' or @type='email']")
     email_inp.clear()
     email_inp.send_keys(email)

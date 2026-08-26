@@ -2,7 +2,7 @@
 matter_page.py - Page Object for the Matter module.
 Handles creation, form interaction (Client, Description, Open/Close Dates, Responsible/Origination Person),
 saving, and navigating to Matter details by clicking Matter ID.
-Includes 5 seconds delay after each action/selection.
+Includes robust error handling and 5-second delays between actions.
 """
 
 import time
@@ -24,11 +24,9 @@ class MatterPage(BasePage):
     # ------------------------------------------------------------------
     # Locators
     # ------------------------------------------------------------------
-    _MATTER_MODULE_LINK = (By.XPATH, "//*[contains(translate(text(), 'MATTER', 'matter'), 'matter')] | //a[contains(@href, 'Matter')]")
+    _MATTER_MODULE_LINK = (By.XPATH, "//*[contains(translate(text(), 'MATTER', 'matter'), 'matter')] | //a[contains(@href, 'Matter') or contains(@href, 'matter')]")
     _NEW_MATTER_BUTTON = (By.XPATH, "//button[contains(., 'New Matter') or contains(., 'Matter') or contains(., 'Add Matter')] | //*[contains(text(), 'New Matter')] | //button[contains(., '+')]")
-    
     _SAVE_BUTTON = (By.XPATH, "//button[contains(., 'Create Matter') or contains(., 'Save') or contains(., 'Submit') or contains(., 'Create') or contains(., 'Save & Continue')] | //a[contains(., 'Create Matter') or contains(., 'Save')] | //button[@type='submit']")
-    _SUCCESS_TOAST = (By.XPATH, "//*[contains(@class, 'toast-success') or contains(@class, 'feedback-message') or contains(text(), 'successfully')]")
 
     def __init__(self, driver: WebDriver):
         super().__init__(driver)
@@ -40,27 +38,34 @@ class MatterPage(BasePage):
     def navigate_to_matter_module(self) -> None:
         """Navigate to the Matter module and wait 5 seconds."""
         try:
-            link = self.wait_utils.wait_for_clickable_by_locator(*self._MATTER_MODULE_LINK)
-            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
+            links = self.driver.find_elements(*self._MATTER_MODULE_LINK)
+            visible_links = [l for l in links if l.is_displayed()]
+            if visible_links:
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", visible_links[0])
+            else:
+                self.driver.get("https://yorpro-test.outsystems.app/legalhub/Matter")
         except Exception:
             self.driver.get("https://yorpro-test.outsystems.app/legalhub/Matter")
         time.sleep(5)
 
     def click_new_matter(self) -> None:
         """Click the New Matter button and wait 5 seconds."""
-        buttons = self.driver.find_elements(*self._NEW_MATTER_BUTTON)
-        clicked = False
-        for btn in buttons:
-            if btn.is_displayed():
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
-                clicked = True
-                break
-        if not clicked:
-            add_btns = self.driver.find_elements(By.XPATH, "//button[contains(., 'Add') or contains(., 'New')]")
-            for btn in add_btns:
+        try:
+            buttons = self.driver.find_elements(*self._NEW_MATTER_BUTTON)
+            clicked = False
+            for btn in buttons:
                 if btn.is_displayed():
-                    self.driver.execute_script("arguments[0].click();", btn)
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
+                    clicked = True
                     break
+            if not clicked:
+                add_btns = self.driver.find_elements(By.XPATH, "//button[contains(., 'Add') or contains(., 'New')]")
+                for btn in add_btns:
+                    if btn.is_displayed():
+                        self.driver.execute_script("arguments[0].click();", btn)
+                        break
+        except Exception as e:
+            print(f"click_new_matter notice: {e}")
         time.sleep(5)
 
     def select_client(self, client_name: str = None) -> None:
@@ -216,12 +221,15 @@ class MatterPage(BasePage):
         time.sleep(5)
 
     def click_save_button(self) -> None:
-        """Click the Save button in the matter creation form and wait 5 seconds."""
-        buttons = self.driver.find_elements(*self._SAVE_BUTTON)
-        for btn in buttons:
-            if btn.is_displayed():
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
-                break
+        """Click the Save / Create Matter button and wait 5 seconds."""
+        try:
+            buttons = self.driver.find_elements(*self._SAVE_BUTTON)
+            for btn in buttons:
+                if btn.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
+                    break
+        except Exception as e:
+            print(f"click_save_button notice: {e}")
         time.sleep(5)
 
     def click_matter_id(self, matter_id: str = None, description: str = None) -> bool:
@@ -290,4 +298,3 @@ class MatterPage(BasePage):
             print(f"click_edit_button notice: {e}")
         time.sleep(5)
         return False
-
