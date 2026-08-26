@@ -12,7 +12,7 @@ pipeline {
 
     environment {
         PROJECT_NAME    = 'Legalhub Automation'
-        RECIPIENT_EMAIL = 'akhil.singh@yorpro.com'
+        RECIPIENT_EMAIL = 'akhilsinghbaghel03@gmail.com'
         PYTHON_EXE      = 'C:\\Program Files\\Python313\\python.exe'
     }
 
