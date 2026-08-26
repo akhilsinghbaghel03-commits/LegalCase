@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 60, unit: 'MINUTES')
+        timeout(time: 90, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '30'))
     }
 
@@ -12,31 +12,127 @@ pipeline {
 
     environment {
         PROJECT_NAME    = 'Legalhub Automation'
-        RECIPIENT_EMAIL = 'akhil.singh@yorpro.com'  // Configurable email placeholder
+        RECIPIENT_EMAIL = 'akhil.singh@yorpro.com'
+        PYTHON_EXE      = 'C:\\Program Files\\Python313\\python.exe'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Prepare Environment') {
             steps {
-                echo "Checking out source code from SCM..."
-                checkout scm
+                bat """
+                    @echo off
+                    echo ===============================================================================
+                    echo [STEP 1/4] Verifying Python 3.13 Installation
+                    echo ===============================================================================
+                    if not exist "${PYTHON_EXE}" (
+                        echo [ERROR] Python executable not found at: "${PYTHON_EXE}"
+                        exit /b 1
+                    )
+                    "${PYTHON_EXE}" --version
+                    if errorlevel 1 exit /b 1
+
+                    echo.
+                    echo ===============================================================================
+                    echo [STEP 2/4] Setting up pip via ensurepip and upgrading
+                    echo ===============================================================================
+                    "${PYTHON_EXE}" -m ensurepip --upgrade
+                    if errorlevel 1 exit /b 1
+
+                    "${PYTHON_EXE}" -m pip install --upgrade pip
+                    if errorlevel 1 exit /b 1
+
+                    echo.
+                    echo ===============================================================================
+                    echo [STEP 3/4] Installing dependencies from requirements.txt
+                    echo ===============================================================================
+                    if not exist "requirements.txt" (
+                        echo [ERROR] requirements.txt not found in workspace!
+                        exit /b 1
+                    )
+                    "${PYTHON_EXE}" -m pip install -r requirements.txt
+                    if errorlevel 1 exit /b 1
+
+                    echo.
+                    echo ===============================================================================
+                    echo [STEP 4/4] Resetting reports directory
+                    echo ===============================================================================
+                    if exist "reports" rmdir /s /q "reports"
+                    mkdir "reports"
+                    if not exist "reports" (
+                        echo [ERROR] Failed to create reports folder!
+                        exit /b 1
+                    )
+                    echo [SUCCESS] Reports directory initialized.
+                """
             }
         }
 
-        stage('Run Automation') {
+        stage('Execute Automation Tests') {
             steps {
-                echo "Executing Windows automation batch script..."
-                bat 'call run_automation.bat'
+                script {
+                    echo "==============================================================================="
+                    echo "[STEP 5] Running Pytest Automation Test Suite"
+                    echo "==============================================================================="
+
+                    // Execute pytest and capture exit code safely to allow Excel generation before failing
+                    env.PYTEST_EXIT_CODE = bat(
+                        script: """
+                            @echo off
+                            "${PYTHON_EXE}" -m pytest --junitxml=reports/results.xml --html=reports/report.html --self-contained-html --ignore=test_contact_out.txt -v
+                        """,
+                        returnStatus: true
+                    ).toString()
+
+                    echo "Pytest execution finished with exit code: ${env.PYTEST_EXIT_CODE}"
+                }
+            }
+        }
+
+        stage('Generate Excel Report') {
+            steps {
+                script {
+                    echo "==============================================================================="
+                    echo "[STEP 6] Generating Excel Test Execution Report"
+                    echo "==============================================================================="
+
+                    // 1. Verify generate_excel_report.py exists
+                    def scriptExists = fileExists 'generate_excel_report.py'
+                    if (!scriptExists) {
+                        error("[ERROR] generate_excel_report.py was not found in the workspace!")
+                    }
+
+                    // 2. Run Excel report generator
+                    def excelStatus = bat(
+                        script: """
+                            @echo off
+                            "${PYTHON_EXE}" generate_excel_report.py
+                        """,
+                        returnStatus: true
+                    )
+
+                    if (excelStatus != 0) {
+                        error("[ERROR] generate_excel_report.py failed with exit code: ${excelStatus}")
+                    }
+                    echo "[SUCCESS] Excel report generated at reports/Test-Execution-Report.xlsx"
+
+                    // 3. If pytest failed earlier, fail this stage now so Jenkins marks the build result accurately
+                    if (env.PYTEST_EXIT_CODE != "0") {
+                        error("[FAILURE] Pytest automation suite encountered test failure(s) (Exit Code: ${env.PYTEST_EXIT_CODE}).")
+                    }
+                }
             }
         }
 
         stage('Publish Reports') {
             steps {
-                echo "Publishing test results and report artifacts..."
-                // 1. Publish JUnit XML Test Results
+                echo "==============================================================================="
+                echo "[STEP 7] Publishing Test Reports & Artifacts"
+                echo "==============================================================================="
+
+                // 1. JUnit XML Test Results
                 junit testResults: 'reports/results.xml', allowEmptyResults: true
 
-                // 2. Publish HTML Report
+                // 2. HTML Publisher Plugin
                 publishHTML([
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
@@ -55,7 +151,7 @@ pipeline {
     post {
         always {
             script {
-                // Ensure reports and test results are always published, even if a previous step failed
+                // Ensure reports and test results are always published even if earlier stages failed
                 junit testResults: 'reports/results.xml', allowEmptyResults: true
 
                 publishHTML([
@@ -109,7 +205,7 @@ pipeline {
                             <div class="container">
                                 <div class="header">
                                     <h1>${env.PROJECT_NAME}</h1>
-                                    <p>Automated Test Execution Notification</p>
+                                    <p>Automated Test Execution Summary</p>
                                 </div>
                                 <div class="content">
                                     <div class="status-banner">
@@ -129,8 +225,16 @@ pipeline {
                                             <td><strong style="color: #28a745;">SUCCESS</strong></td>
                                         </tr>
                                         <tr>
+                                            <td class="label">Git Commit:</td>
+                                            <td><code>${env.GIT_COMMIT ?: 'Latest master'}</code></td>
+                                        </tr>
+                                        <tr>
                                             <td class="label">Build URL:</td>
                                             <td><a href="${env.BUILD_URL}" style="color: #0d6efd;">${env.BUILD_URL}</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="label">HTML Report:</td>
+                                            <td><a href="${env.BUILD_URL}HTML_20Automation_20Report/" style="color: #0d6efd;">View HTML Report</a></td>
                                         </tr>
                                     </table>
 
@@ -159,7 +263,7 @@ pipeline {
                                         <ul>
                                             <li><strong>HTML Report:</strong> <code>report.html</code></li>
                                             <li><strong>Excel Execution Report:</strong> <code>Test-Execution-Report.xlsx</code></li>
-                                            <li><strong>JUnit Results XML:</strong> <code>results.xml</code></li>
+                                            <li><strong>JUnit XML Results:</strong> <code>results.xml</code></li>
                                         </ul>
                                     </div>
 
@@ -222,7 +326,7 @@ pipeline {
                             <div class="container">
                                 <div class="header">
                                     <h1>${env.PROJECT_NAME}</h1>
-                                    <p>Automated Test Execution Notification</p>
+                                    <p>Automated Test Execution Failure Notification</p>
                                 </div>
                                 <div class="content">
                                     <div class="status-banner">
@@ -242,8 +346,16 @@ pipeline {
                                             <td><strong style="color: #dc3545;">FAILURE</strong></td>
                                         </tr>
                                         <tr>
+                                            <td class="label">Git Commit:</td>
+                                            <td><code>${env.GIT_COMMIT ?: 'Latest master'}</code></td>
+                                        </tr>
+                                        <tr>
                                             <td class="label">Build URL:</td>
                                             <td><a href="${env.BUILD_URL}" style="color: #0d6efd;">${env.BUILD_URL}</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="label">HTML Report:</td>
+                                            <td><a href="${env.BUILD_URL}HTML_20Automation_20Report/" style="color: #0d6efd;">View HTML Report</a></td>
                                         </tr>
                                     </table>
 
@@ -273,7 +385,7 @@ pipeline {
                                             <li><strong>Build Console Log:</strong> Attached to this email</li>
                                             <li><strong>HTML Report:</strong> <code>report.html</code></li>
                                             <li><strong>Excel Execution Report:</strong> <code>Test-Execution-Report.xlsx</code></li>
-                                            <li><strong>JUnit Results XML:</strong> <code>results.xml</code></li>
+                                            <li><strong>JUnit XML Results:</strong> <code>results.xml</code></li>
                                         </ul>
                                     </div>
 
