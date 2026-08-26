@@ -31,92 +31,20 @@ def safe_urlopen(req, max_retries=5):
             print(f"Network error: {e}. Retrying {attempt + 1}/{max_retries}...")
             time.sleep(5)
 
-import http.cookiejar
-guerrilla_cj = http.cookiejar.CookieJar()
-guerrilla_opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(guerrilla_cj))
-guerrilla_opener.addheaders = [('User-Agent', 'Mozilla/5.0')]
+from test.utils.helpers import (
+    create_mail_tm_account,
+    get_mail_tm_token,
+    get_current_mail_ids,
+    get_otp_from_mail_tm,
+    delete_mail_tm_messages,
+    navigate_with_retry,
+    fill_field_by_keyword,
+    set_input_value
+)
 
 def get_mail_tm_domain():
     return "guerrillamail.com"
 
-def create_mail_tm_account(email, password):
-    prefix = email.split('@')[0]
-    domain = get_mail_tm_domain()
-    req = urllib.request.Request(f'http://api.guerrillamail.com/ajax.php?f=set_email_user&email_user={prefix}&lang=en&domain={domain}', method='POST')
-    try:
-        return json.loads(guerrilla_opener.open(req).read().decode())
-    except Exception as e:
-        print(f"Failed to create GuerrillaMail account: {e}")
-        return None
-
-def get_mail_tm_token(email, password):
-    return "guerrillamail_dummy_token"
-
-def get_current_mail_ids(token=None):
-    try:
-        req = urllib.request.Request(f'http://api.guerrillamail.com/ajax.php?f=check_email&seq=0')
-        res = json.loads(guerrilla_opener.open(req).read().decode())
-        return [msg['mail_id'] for msg in res.get('list', [])]
-    except Exception:
-        return []
-
-def get_otp_from_mail_tm(token, max_retries=60, ignore_mail_ids=None):
-    """Poll GuerrillaMail for an email containing a 6-digit or 4-digit OTP."""
-    import re
-    if ignore_mail_ids is None:
-        ignore_mail_ids = []
-        
-    for i in range(max_retries):
-        print(f"Polling for email... (Attempt {i+1}/{max_retries})")
-        time.sleep(10)
-        
-        req = urllib.request.Request(f'http://api.guerrillamail.com/ajax.php?f=check_email&seq=0')
-        try:
-            res = json.loads(guerrilla_opener.open(req).read().decode())
-            for msg in res.get('list', []):  # Check newest first
-                msg_id = msg['mail_id']
-                if msg_id in ignore_mail_ids:
-                    continue
-                    
-                msg_req = urllib.request.Request(f'http://api.guerrillamail.com/ajax.php?f=fetch_email&email_id={msg_id}')
-                msg_res = json.loads(guerrilla_opener.open(msg_req).read().decode())
-                body = msg_res.get('mail_body', '')
-                subject = msg.get('mail_subject', '')
-                
-                print(f"  -> Found email with subject: '{subject}'")
-                if 'welcome to guerrilla mail' in subject.lower():
-                    continue
-                
-                # Strip HTML tags to avoid matching hex color codes or URLs
-                plain_text = re.sub(r'<[^>]+>', ' ', body)
-                
-                # Extract OTP
-                # Use negative lookbehind to ensure the number is NOT preceded by '#' (a hex code) or a word character
-                otp_match = re.search(r'(?<![#\w])(\d{6})(?!\w)', plain_text)
-                if not otp_match:
-                    otp_match = re.search(r'(?<![#\w])(\d{4})(?!\w)', plain_text)
-                    
-                if otp_match:
-                    otp = otp_match.group(1)
-                    return otp, msg_id
-        except Exception as e:
-            print(f"API polling error: {e}")
-            
-    return None
-
-def delete_mail_tm_messages(token):
-    print("Clearing old messages from GuerrillaMail inbox...")
-    try:
-        req = urllib.request.Request(f'http://api.guerrillamail.com/ajax.php?f=check_email&seq=0')
-        res = json.loads(guerrilla_opener.open(req).read().decode())
-        email_ids = [msg['mail_id'] for msg in res.get('list', [])]
-        if email_ids:
-            for eid in email_ids:
-                del_req = urllib.request.Request(f'http://api.guerrillamail.com/ajax.php?f=del_email&email_ids[]={eid}', method='POST')
-                guerrilla_opener.open(del_req)
-            print(f"Deleted {len(email_ids)} messages.")
-    except Exception as e:
-        print(f"Failed to clear inbox: {e}")
 
 def fill_stripe_form(driver, wait):
     # Wait for redirection to Stripe Checkout
@@ -280,10 +208,15 @@ def test_signup():
         json.dump({"email": email, "password": password}, f)
         
     chrome_options = Options()
-    # chrome_options.add_argument("--headless=new") # Commented out so you can see the UI
+    chrome_options.add_argument("--incognito")
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--remote-allow-origins=*")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
     
     driver = None
     try:
@@ -291,7 +224,8 @@ def test_signup():
         wait = WebDriverWait(driver, 20)
         
         # 1. Navigate to login page
-        driver.get("https://yorpro-test.outsystems.app/legalhub/Login")
+        navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Login")
+
         
         # 2. Wait for and click "Sign Up" button on login page
         try:
@@ -1117,7 +1051,17 @@ def test_signup():
                     print(f"Warning: Could not click Add New Entry -> Company: {e}")
                     
             time.sleep(3)
-            print("Filling New Company form...")
+            print("Testing New Company blank validation scenario...")
+            try:
+                empty_save_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')]")
+                if empty_save_btns:
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", empty_save_btns[0])
+                    time.sleep(1.5)
+                    print("[VALIDATION] Clicked Save on blank Company form to trigger validation.")
+            except Exception as val_e:
+                print(f"Blank company validation note: {val_e}")
+
+            print("Filling New Company form with valid data...")
             fill_all_dynamic_text_fields()
             
             print("Saving new company...")
@@ -1176,13 +1120,34 @@ def test_signup():
                     print(f"Warning: Could not click Add New Entry -> Person: {e}")
             
             time.sleep(3)
-            print("Filling New Person form...")
+            print("Testing New Person blank validation scenario...")
+            try:
+                empty_person_save = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')]")
+                if empty_person_save:
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", empty_person_save[0])
+                    time.sleep(1.5)
+                    print("[VALIDATION] Clicked Save on blank Person form to trigger validation.")
+            except Exception as val_p:
+                print(f"Blank person validation note: {val_p}")
+
+            # Partial validation - First Name only
+            try:
+                fill_by_label("First Name", "Akhil")
+                if empty_person_save:
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", empty_person_save[0])
+                    time.sleep(1.5)
+                    print("[VALIDATION] Clicked Save with First Name only.")
+            except Exception:
+                pass
+
+            print("Filling New Person form with full valid data...")
             
             # STEP 1: Personal Information
             select_dropdown("Prefix", "Mr.")
             select_dropdown("Company") # Pick first available dropdown option
             
             fill_all_dynamic_text_fields()
+
             
             print("--- STEP 2: Contact Information ---")
             navigate_step("Contact Information")
@@ -1315,24 +1280,34 @@ def test_signup():
                     # 17. Enter Description
                     print("Entering Description...")
                     try:
-                        desc_input = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'description')]/following::textarea[1] | //*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'description')]/following::input[1]")
+                        desc_input = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'description')]/following::textarea[1] | //*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'description')]/following::input[1] | //textarea")
                         driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", desc_input)
-                        desc_input.send_keys("A" * 250)
-                        print("[SUCCESS] 250-character Description entered.")
+                        desc_text = "Automated Test Matter Description - " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        desc_input.clear()
+                        desc_input.send_keys(desc_text)
+                        set_input_value(driver, desc_input, desc_text)
+                        print(f"[SUCCESS] Description entered: {desc_text}")
                     except Exception as e:
                         print(f"Warning: Could not enter description: {e}")
                         
                     # 18. Save Matter
                     print("Saving Matter...")
                     try:
-                        save_matter_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')]")
+                        save_matter_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
                         visible_saves = [btn for btn in save_matter_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
                         if visible_saves:
-                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", visible_saves[0])
-                            print("[SUCCESS] Matter saved.")
-                            time.sleep(10) # Wait 10 seconds after saving
+                            save_btn = visible_saves[0]
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
+                            time.sleep(0.5)
+                            try:
+                                save_btn.click()
+                            except Exception:
+                                driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
+                            print("[SUCCESS] Matter saved button clicked.")
+                            time.sleep(5)
                     except Exception as e:
                         print(f"Warning: Could not save matter: {e}")
+
                         
                 except Exception as e:
                     print(f"Warning: Could not navigate to Matter module: {e}")

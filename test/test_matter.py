@@ -116,14 +116,25 @@ def test_matter_workflow(driver_setup):
     
     # Select Client
     try:
-        client_dropdown = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'client')]/following::select | //*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'client')]/following::input[contains(@class, 'dropdown') or @role='combobox'] | //*[contains(@class, 'dropdown')]")
-        driver.execute_script("arguments[0].click();", client_dropdown)
-        time.sleep(1)
-        from selenium.webdriver.common.keys import Keys
-        from selenium.webdriver.common.action_chains import ActionChains
-        ActionChains(driver).send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).perform()
+        client_vscomp = driver.find_elements(By.XPATH, "//div[@class='vscomp-value' and @data-tooltip=\"What's the contact name\"] | //div[contains(@class, 'vscomp-toggle-button')]")
+        if client_vscomp:
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", client_vscomp[0])
+            time.sleep(1)
+            options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+            visible_opts = [o for o in options if o.is_displayed()]
+            if visible_opts:
+                opt = visible_opts[1] if len(visible_opts) > 1 else visible_opts[0]
+                driver.execute_script("arguments[0].click();", opt)
+        else:
+            client_dropdown = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'client')]/following::select | //*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'client')]/following::input[contains(@class, 'dropdown') or @role='combobox'] | //*[contains(@class, 'dropdown')]")
+            driver.execute_script("arguments[0].click();", client_dropdown)
+            time.sleep(1)
+            from selenium.webdriver.common.keys import Keys
+            from selenium.webdriver.common.action_chains import ActionChains
+            ActionChains(driver).send_keys(Keys.ARROW_DOWN).send_keys(Keys.ENTER).perform()
     except Exception:
         pass
+
     time.sleep(1)
     
     # Enter Description 'randam test'
