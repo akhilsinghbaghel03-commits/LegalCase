@@ -1177,31 +1177,45 @@ def test_signup():
             select_dropdown("Type", "Mobile", index=1) # Second Type dropdown
             check_checkbox("Primary", index=1) # Second Primary checkbox
 
-            # Click Save
-            print("Saving new contact...")
+            # Click Save (two times)
+            print("Saving new contact (1st click)...")
             try:
-                save_clicked = False
-                for _ in range(10):
-                    try:
-                        save_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
-                        visible_saves = [btn for btn in save_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
-                        if visible_saves:
-                            save_btn = visible_saves[0]
-                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
-                            time.sleep(0.5)
-                            try:
-                                save_btn.click()
-                            except Exception:
-                                driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
-                            print("[SUCCESS] Person save button found and clicked")
-                            save_clicked = True
-                            break
-                    except Exception as loop_e:
-                        print(f"Retry loop note: {loop_e}")
+                for _ in range(5):
+                    save_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
+                    visible_saves = [btn for btn in save_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
+                    if visible_saves:
+                        save_btn = visible_saves[0]
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
+                        time.sleep(0.5)
+                        try:
+                            save_btn.click()
+                        except Exception:
+                            driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
+                        print("[SUCCESS] Person save button clicked (1st click)")
+                        break
                     time.sleep(1)
+            except Exception as loop_e:
+                print(f"1st save click note: {loop_e}")
+
+            time.sleep(2)
+            print("Saving new contact (2nd click)...")
+            try:
+                save_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
+                visible_saves = [btn for btn in save_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
+                if visible_saves:
+                    save_btn = visible_saves[0]
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
+                    time.sleep(0.5)
+                    try:
+                        save_btn.click()
+                    except Exception:
+                        driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
+                    print("[SUCCESS] Person save button clicked (2nd click)")
+            except Exception as loop_e:
+                print(f"2nd save click note: {loop_e}")
                 
-                time.sleep(3)
-                print("[SUCCESS] Person saves successfully")
+            time.sleep(3)
+            print("[SUCCESS] Person saved successfully (after 2 save clicks)")
                 
                 # Check for success message
                 try:

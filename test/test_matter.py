@@ -104,10 +104,15 @@ def test_matter_workflow(driver_setup):
     fill_by_label("Email", person_email)
     fill_by_label("Phone", person_phone)
     
-    # Save Person
+    # Save Person (Click twice)
+    print("Clicking Save button for Person (1st click)...")
+    click_button_by_texts(["save", "save & continue", "submit"])
+    time.sleep(2)
+    
+    print("Clicking Save button for Person (2nd click)...")
     click_button_by_texts(["save", "save & continue", "submit"])
     time.sleep(3)
-    print(f"[SUCCESS] Person created: {person_full}")
+    print(f"[SUCCESS] Person created and saved: {person_full}")
 
     # 3. Create Company
     print(f"Creating Company: {company_name}...")
