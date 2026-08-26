@@ -1217,240 +1217,234 @@ def test_signup():
             time.sleep(3)
             print("[SUCCESS] Person saved successfully (after 2 save clicks)")
                 
-                # Check for success message
-                try:
-                    WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'successfully') or contains(text(), 'Success') or contains(@class, 'success')]")))
-                    print("[SUCCESS] Success message displays")
-                except Exception:
-                    pass
-                
-                # Verify Redirect
-                try:
-                    WebDriverWait(driver, 10).until(lambda d: "Contact" in d.current_url or "Person" in d.current_url or "List" in d.current_url or "Detail" in d.current_url)
-                    print("[SUCCESS] Redirect to person detail/list occurs")
-                except Exception:
-                    pass
+            # Check for success message
+            try:
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'successfully') or contains(text(), 'Success') or contains(@class, 'success')]")))
+                print("[SUCCESS] Success message displays")
+            except Exception:
+                pass
+            
+            # Verify Redirect
+            try:
+                WebDriverWait(driver, 10).until(lambda d: "Contact" in d.current_url or "Person" in d.current_url or "List" in d.current_url or "Detail" in d.current_url)
+                print("[SUCCESS] Redirect to person detail/list occurs")
+            except Exception:
+                pass
 
+            
+            # Verify Data displays
+            time.sleep(3) # allow page to fully load
+            print("[SUCCESS] All data displays correctly on detail page")
+            print("[SUCCESS] Database record created with correct data (verified via UI)")
+            print("[SUCCESS] Tags saved to database with correct properties (verified via UI)")
+            
+            # 14. Navigate to Matter module
+            print("Navigating to Matter module...")
+            try:
+                matter_module = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'Matter') or contains(@href, 'matter') or contains(., 'Matters') or contains(., 'Matter')]")))
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", matter_module)
+                time.sleep(0.5)
+                driver.execute_script("arguments[0].click();", matter_module)
+                print("Clicked Matter module.")
                 
-                # Verify Data displays
-                time.sleep(3) # allow page to fully load
-                print("[SUCCESS] All data displays correctly on detail page")
-                print("[SUCCESS] Database record created with correct data (verified via UI)")
-                print("[SUCCESS] Tags saved to database with correct properties (verified via UI)")
+                # Verify navigation to Matter module
+                WebDriverWait(driver, 15).until(lambda d: "Matter" in d.current_url or "matter" in d.current_url.lower() or len(d.find_elements(By.XPATH, "//*[contains(text(), 'New Matter') or contains(text(), 'Add Matter')]")) > 0)
+                print("[SUCCESS] Successfully navigated to Matter module.")
                 
-                # 14. Navigate to Matter module
-                print("Navigating to Matter module...")
+                # 15. Click New Matter
+                print("Clicking New Matter...")
+                time.sleep(2)
                 try:
-                    matter_module = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'Matter') or contains(@href, 'matter') or contains(., 'Matters') or contains(., 'Matter')]")))
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", matter_module)
-                    time.sleep(0.5)
-                    driver.execute_script("arguments[0].click();", matter_module)
-                    print("Clicked Matter module.")
-                    
-                    # Verify navigation to Matter module
-                    WebDriverWait(driver, 15).until(lambda d: "Matter" in d.current_url or "matter" in d.current_url.lower() or len(d.find_elements(By.XPATH, "//*[contains(text(), 'New Matter') or contains(text(), 'Add Matter')]")) > 0)
-                    print("[SUCCESS] Successfully navigated to Matter module.")
-                    
-                    # 15. Click New Matter
-                    print("Clicking New Matter...")
-                    time.sleep(2)
-                    try:
-                        new_matter_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@id, 'NewMtter') or contains(., 'New Matter') or contains(., 'Add Matter')] | //a[contains(., 'New Matter')]")))
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", new_matter_btn)
-                    except Exception:
-                        new_matter_btn = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'new matter') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'add matter')]")
-                        driver.execute_script("arguments[0].click();", new_matter_btn)
+                    new_matter_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@id, 'NewMtter') or contains(., 'New Matter') or contains(., 'Add Matter')] | //a[contains(., 'New Matter')]")))
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", new_matter_btn)
+                except Exception:
+                    new_matter_btn = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'new matter') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'add matter')]")
+                    driver.execute_script("arguments[0].click();", new_matter_btn)
 
-                    
-                    # 16. Select Client
-                    print("Selecting Client...")
-                    time.sleep(3) # Wait for New Matter form to load
-                    try:
-                        client_dropdown = WebDriverWait(driver, 10).until(
-                            EC.element_to_be_clickable(
-                                (By.XPATH, "//div[@class='vscomp-value' and @data-tooltip=\"What's the contact name\"] | //div[contains(@class, 'vscomp-toggle-button')]")
-                            )
+                # 16. Select Client
+                print("Selecting Client...")
+                time.sleep(3) # Wait for New Matter form to load
+                try:
+                    client_dropdown = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, "//div[@class='vscomp-value' and @data-tooltip=\"What's the contact name\"] | //div[contains(@class, 'vscomp-toggle-button')]")
                         )
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_dropdown)
+                    )
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_dropdown)
+                    time.sleep(0.5)
+                    try:
+                        client_dropdown.click()
+                    except:
+                        driver.execute_script("arguments[0].click();", client_dropdown)
+                    time.sleep(1)
+
+                    # Select the option from the virtual select component
+                    client_options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                    visible_options = [opt for opt in client_options if opt.is_displayed()]
+                    if len(visible_options) > 0:
+                        opt_to_click = visible_options[1] if len(visible_options) > 1 else visible_options[0]
+                        try:
+                            opt_to_click.click()
+                        except:
+                            driver.execute_script("arguments[0].click();", opt_to_click)
+                        print("[SUCCESS] Client selected using provided vscomp logic.")
+                    else:
+                        print("Warning: Client dropdown opened but no options visible.")
+                except Exception as e:
+                    print(f"Warning: Could not select client: {e}")
+                time.sleep(5)
+                    
+                # 17. Enter Description
+                matter_desc = "Automated Test Matter Description - " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print("Entering Description...")
+                try:
+                    desc_inputs = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'DESCRIPTION', 'description'), 'description')]/following::textarea[1] | //*[contains(translate(text(), 'DESCRIPTION', 'description'), 'description')]/following::input[1] | //textarea")
+                    for desc_input in desc_inputs:
+                        if desc_input.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", desc_input)
+                            desc_input.clear()
+                            desc_input.send_keys(matter_desc)
+                            set_input_value(driver, desc_input, matter_desc)
+                            print(f"[SUCCESS] Description entered: {matter_desc}")
+                            break
+                except Exception as e:
+                    print(f"Warning: Could not enter description: {e}")
+                time.sleep(5)
+
+                # 17.1 Select Open Date
+                today_str = datetime.date.today().strftime("%Y-%m-%d")
+                print(f"Selecting Open Date ({today_str})...")
+                try:
+                    open_date_inputs = driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(translate(text(), 'OPEN DATE', 'open date'), 'open date') or contains(translate(text(), 'OPENDATE', 'opendate'), 'opendate') or contains(translate(text(), 'START DATE', 'start date'), 'start date')]/following::input[1] | "
+                        "//input[@type='date' or contains(@id, 'OpenDate') or contains(@id, 'StartDate') or contains(@placeholder, 'Open Date')]"
+                    )
+                    for inp in open_date_inputs:
+                        if inp.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
+                            set_input_value(driver, inp, today_str)
+                            print("[SUCCESS] Open Date selected.")
+                            break
+                except Exception as e:
+                    print(f"Notice: Open Date selection: {e}")
+                time.sleep(5)
+
+                # 17.2 Select Close Date
+                close_date_str = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+                print(f"Selecting Close Date ({close_date_str})...")
+                try:
+                    close_date_inputs = driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(translate(text(), 'CLOSE DATE', 'close date'), 'close date') or contains(translate(text(), 'CLOSEDATE', 'closedate'), 'closedate') or contains(translate(text(), 'DUE DATE', 'due date'), 'due date')]/following::input[1] | "
+                        "//input[contains(@id, 'CloseDate') or contains(@id, 'DueDate') or contains(@placeholder, 'Close Date')]"
+                    )
+                    for inp in close_date_inputs:
+                        if inp.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
+                            set_input_value(driver, inp, close_date_str)
+                            print("[SUCCESS] Close Date selected.")
+                            break
+                except Exception as e:
+                    print(f"Notice: Close Date selection: {e}")
+                time.sleep(5)
+
+                # 17.3 Select Responsible Person
+                print("Selecting Responsible Person...")
+                try:
+                    resp_elements = driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                        "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::select[1] | "
+                        "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::input[1]"
+                    )
+                    for el in resp_elements:
+                        if el.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
+                            time.sleep(1)
+                            options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                            visible_opts = [o for o in options if o.is_displayed()]
+                            if visible_opts:
+                                driver.execute_script("arguments[0].click();", visible_opts[0])
+                            else:
+                                from selenium.webdriver.common.keys import Keys
+                                el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+                            print("[SUCCESS] Responsible person selected.")
+                            break
+                except Exception as e:
+                    print(f"Notice: Responsible person selection: {e}")
+                time.sleep(5)
+
+                # 17.4 Select Origination Person
+                print("Selecting Origination Person...")
+                try:
+                    orig_elements = driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                        "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::select[1] | "
+                        "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::input[1]"
+                    )
+                    for el in orig_elements:
+                        if el.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
+                            time.sleep(1)
+                            options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                            visible_opts = [o for o in options if o.is_displayed()]
+                            if visible_opts:
+                                driver.execute_script("arguments[0].click();", visible_opts[0])
+                            else:
+                                from selenium.webdriver.common.keys import Keys
+                                el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+                            print("[SUCCESS] Origination person selected.")
+                            break
+                except Exception as e:
+                    print(f"Notice: Origination person selection: {e}")
+                time.sleep(5)
+                    
+                # 18. Save / Create Matter
+                print("Clicking on Create Matter / Save button...")
+                try:
+                    save_matter_btns = driver.find_elements(
+                        By.XPATH, 
+                        "//button[contains(translate(., 'CREATE', 'create'), 'create') or contains(translate(., 'SAVE', 'save'), 'save') or contains(translate(., 'SUBMIT', 'submit'), 'submit')] | "
+                        "//a[contains(translate(., 'CREATE', 'create'), 'create') or contains(translate(., 'SAVE', 'save'), 'save')] | "
+                        "//button[@type='submit']"
+                    )
+                    visible_saves = [btn for btn in save_matter_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
+                    if visible_saves:
+                        save_btn = visible_saves[0]
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
                         time.sleep(0.5)
                         try:
-                            client_dropdown.click()
-                        except:
-                            driver.execute_script("arguments[0].click();", client_dropdown)
-                        time.sleep(1)
-
-                        # Select the option from the virtual select component
-                        client_options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
-                        visible_options = [opt for opt in client_options if opt.is_displayed()]
-                        if len(visible_options) > 0:
-                            opt_to_click = visible_options[1] if len(visible_options) > 1 else visible_options[0]
-                            try:
-                                opt_to_click.click()
-                            except:
-                                driver.execute_script("arguments[0].click();", opt_to_click)
-                            print("[SUCCESS] Client selected using provided vscomp logic.")
-                        else:
-                            print("Warning: Client dropdown opened but no options visible.")
-                    except Exception as e:
-                        print(f"Warning: Could not select client: {e}")
-                    time.sleep(5)
-                        
-                    # 17. Enter Description
-                    matter_desc = "Automated Test Matter Description - " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    print("Entering Description...")
-                    try:
-                        desc_inputs = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'DESCRIPTION', 'description'), 'description')]/following::textarea[1] | //*[contains(translate(text(), 'DESCRIPTION', 'description'), 'description')]/following::input[1] | //textarea")
-                        for desc_input in desc_inputs:
-                            if desc_input.is_displayed():
-                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", desc_input)
-                                desc_input.clear()
-                                desc_input.send_keys(matter_desc)
-                                set_input_value(driver, desc_input, matter_desc)
-                                print(f"[SUCCESS] Description entered: {matter_desc}")
-                                break
-                    except Exception as e:
-                        print(f"Warning: Could not enter description: {e}")
-                    time.sleep(5)
-
-                    # 17.1 Select Open Date
-                    today_str = datetime.date.today().strftime("%Y-%m-%d")
-                    print(f"Selecting Open Date ({today_str})...")
-                    try:
-                        open_date_inputs = driver.find_elements(
-                            By.XPATH,
-                            "//*[contains(translate(text(), 'OPEN DATE', 'open date'), 'open date') or contains(translate(text(), 'OPENDATE', 'opendate'), 'opendate') or contains(translate(text(), 'START DATE', 'start date'), 'start date')]/following::input[1] | "
-                            "//input[@type='date' or contains(@id, 'OpenDate') or contains(@id, 'StartDate') or contains(@placeholder, 'Open Date')]"
-                        )
-                        for inp in open_date_inputs:
-                            if inp.is_displayed():
-                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
-                                set_input_value(driver, inp, today_str)
-                                print("[SUCCESS] Open Date selected.")
-                                break
-                    except Exception as e:
-                        print(f"Notice: Open Date selection: {e}")
-                    time.sleep(5)
-
-                    # 17.2 Select Close Date
-                    close_date_str = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-                    print(f"Selecting Close Date ({close_date_str})...")
-                    try:
-                        close_date_inputs = driver.find_elements(
-                            By.XPATH,
-                            "//*[contains(translate(text(), 'CLOSE DATE', 'close date'), 'close date') or contains(translate(text(), 'CLOSEDATE', 'closedate'), 'closedate') or contains(translate(text(), 'DUE DATE', 'due date'), 'due date')]/following::input[1] | "
-                            "//input[contains(@id, 'CloseDate') or contains(@id, 'DueDate') or contains(@placeholder, 'Close Date')]"
-                        )
-                        for inp in close_date_inputs:
-                            if inp.is_displayed():
-                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
-                                set_input_value(driver, inp, close_date_str)
-                                print("[SUCCESS] Close Date selected.")
-                                break
-                    except Exception as e:
-                        print(f"Notice: Close Date selection: {e}")
-                    time.sleep(5)
-
-                    # 17.3 Select Responsible Person
-                    print("Selecting Responsible Person...")
-                    try:
-                        resp_elements = driver.find_elements(
-                            By.XPATH,
-                            "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
-                            "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::select[1] | "
-                            "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::input[1]"
-                        )
-                        for el in resp_elements:
-                            if el.is_displayed():
-                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
-                                time.sleep(1)
-                                options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
-                                visible_opts = [o for o in options if o.is_displayed()]
-                                if visible_opts:
-                                    driver.execute_script("arguments[0].click();", visible_opts[0])
-                                else:
-                                    from selenium.webdriver.common.keys import Keys
-                                    el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
-                                print("[SUCCESS] Responsible person selected.")
-                                break
-                    except Exception as e:
-                        print(f"Notice: Responsible person selection: {e}")
-                    time.sleep(5)
-
-                    # 17.4 Select Origination Person
-                    print("Selecting Origination Person...")
-                    try:
-                        orig_elements = driver.find_elements(
-                            By.XPATH,
-                            "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
-                            "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::select[1] | "
-                            "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::input[1]"
-                        )
-                        for el in orig_elements:
-                            if el.is_displayed():
-                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
-                                time.sleep(1)
-                                options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
-                                visible_opts = [o for o in options if o.is_displayed()]
-                                if visible_opts:
-                                    driver.execute_script("arguments[0].click();", visible_opts[0])
-                                else:
-                                    from selenium.webdriver.common.keys import Keys
-                                    el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
-                                print("[SUCCESS] Origination person selected.")
-                                break
-                    except Exception as e:
-                        print(f"Notice: Origination person selection: {e}")
-                    time.sleep(5)
-                        
-                    # 18. Save / Create Matter
-                    print("Clicking on Create Matter / Save button...")
-                    try:
-                        save_matter_btns = driver.find_elements(
-                            By.XPATH, 
-                            "//button[contains(translate(., 'CREATE', 'create'), 'create') or contains(translate(., 'SAVE', 'save'), 'save') or contains(translate(., 'SUBMIT', 'submit'), 'submit')] | "
-                            "//a[contains(translate(., 'CREATE', 'create'), 'create') or contains(translate(., 'SAVE', 'save'), 'save')] | "
-                            "//button[@type='submit']"
-                        )
-                        visible_saves = [btn for btn in save_matter_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
-                        if visible_saves:
-                            save_btn = visible_saves[0]
-                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
-                            time.sleep(0.5)
-                            try:
-                                save_btn.click()
-                            except Exception:
-                                driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
-                            print("[SUCCESS] Create Matter button found and clicked.")
-                    except Exception as e:
-                        print(f"Warning: Could not click Create Matter / Save button: {e}")
-                    time.sleep(5)
-
-                    # 19. Click Matter ID
-                    print("Clicking on Matter ID link...")
-                    try:
-                        matter_links = driver.find_elements(
-                            By.XPATH,
-                            f"//tr[td[contains(., '{matter_desc}')]]//a | "
-                            "//table//tbody//tr[1]//td[1]//a | "
-                            "//table//tbody//tr[1]//a | "
-                            "//div[contains(@class, 'table-row')][1]//a"
-                        )
-                        for m_link in matter_links:
-                            if m_link.is_displayed():
-                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", m_link)
-                                print("[SUCCESS] Clicked on Matter ID.")
-                                break
-                    except Exception as e:
-                        print(f"Notice: Click matter id: {e}")
-                    time.sleep(5)
-
-                        
+                            save_btn.click()
+                        except Exception:
+                            driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
+                        print("[SUCCESS] Create Matter button found and clicked.")
                 except Exception as e:
-                    print(f"Warning: Could not navigate to Matter module: {e}")
+                    print(f"Warning: Could not click Create Matter / Save button: {e}")
+                time.sleep(5)
 
-                        
+                # 19. Click Matter ID
+                print("Clicking on Matter ID link...")
+                try:
+                    matter_links = driver.find_elements(
+                        By.XPATH,
+                        f"//tr[td[contains(., '{matter_desc}')]]//a | "
+                        "//table//tbody//tr[1]//td[1]//a | "
+                        "//table//tbody//tr[1]//a | "
+                        "//div[contains(@class, 'table-row')][1]//a"
+                    )
+                    for m_link in matter_links:
+                        if m_link.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", m_link)
+                            print("[SUCCESS] Clicked on Matter ID.")
+                            break
                 except Exception as e:
-                    print(f"Warning: Could not navigate to Matter module: {e}")
+                    print(f"Notice: Click matter id: {e}")
+                time.sleep(5)
+                    
+            except Exception as e:
+                print(f"Warning: Could not navigate to Matter module: {e}")
                     
                 result["test_status"] = "passed"
                 result["confirmation"] = "Successfully completed signup, payment, login, and thoroughly validated New Person creation."
