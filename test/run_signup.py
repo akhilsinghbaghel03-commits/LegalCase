@@ -1388,10 +1388,15 @@ def test_signup():
                         print(f"Notice: Origination person selection: {e}")
                     time.sleep(5)
                         
-                    # 18. Save Matter
-                    print("Saving Matter...")
+                    # 18. Save / Create Matter
+                    print("Clicking on Create Matter / Save button...")
                     try:
-                        save_matter_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
+                        save_matter_btns = driver.find_elements(
+                            By.XPATH, 
+                            "//button[contains(translate(., 'CREATE', 'create'), 'create') or contains(translate(., 'SAVE', 'save'), 'save') or contains(translate(., 'SUBMIT', 'submit'), 'submit')] | "
+                            "//a[contains(translate(., 'CREATE', 'create'), 'create') or contains(translate(., 'SAVE', 'save'), 'save')] | "
+                            "//button[@type='submit']"
+                        )
                         visible_saves = [btn for btn in save_matter_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
                         if visible_saves:
                             save_btn = visible_saves[0]
@@ -1401,9 +1406,9 @@ def test_signup():
                                 save_btn.click()
                             except Exception:
                                 driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
-                            print("[SUCCESS] Matter saved button clicked.")
+                            print("[SUCCESS] Create Matter button found and clicked.")
                     except Exception as e:
-                        print(f"Warning: Could not save matter: {e}")
+                        print(f"Warning: Could not click Create Matter / Save button: {e}")
                     time.sleep(5)
 
                     # 19. Click Matter ID

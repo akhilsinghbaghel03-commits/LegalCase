@@ -27,7 +27,7 @@ class MatterPage(BasePage):
     _MATTER_MODULE_LINK = (By.XPATH, "//*[contains(translate(text(), 'MATTER', 'matter'), 'matter')] | //a[contains(@href, 'Matter')]")
     _NEW_MATTER_BUTTON = (By.XPATH, "//button[contains(., 'New Matter') or contains(., 'Matter') or contains(., 'Add Matter')] | //*[contains(text(), 'New Matter')] | //button[contains(., '+')]")
     
-    _SAVE_BUTTON = (By.XPATH, "//button[contains(., 'Save') or contains(., 'Submit') or contains(., 'Save & Continue')]")
+    _SAVE_BUTTON = (By.XPATH, "//button[contains(., 'Create Matter') or contains(., 'Save') or contains(., 'Submit') or contains(., 'Create') or contains(., 'Save & Continue')] | //a[contains(., 'Create Matter') or contains(., 'Save')] | //button[@type='submit']")
     _SUCCESS_TOAST = (By.XPATH, "//*[contains(@class, 'toast-success') or contains(@class, 'feedback-message') or contains(text(), 'successfully')]")
 
     def __init__(self, driver: WebDriver):
