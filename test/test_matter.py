@@ -170,14 +170,19 @@ def test_matter_workflow(driver_setup):
     matter_page.select_origination_person()
     time.sleep(5)
 
-    # 12. Click Save Button
-    print("Clicking Save button for Matter...")
+    # 12. Click Create Matter / Save Button
+    print("Clicking Create Matter / Save button...")
     matter_page.click_save_button()
     time.sleep(5)
 
-    # 13. Click on the Matter ID link to view Matter details
-    print("Navigating into created Matter by clicking Matter ID...")
+    # 13. Click on the Matter to view details
+    print("Navigating into created Matter by clicking on the Matter...")
     clicked_id = matter_page.click_matter_id(description=matter_desc)
     time.sleep(5)
 
-    print(f"End-to-End Workflow successfully completed! Matter ID clicked: {clicked_id}")
+    # 14. Click on the Edit button
+    print("Clicking on the Edit button on Matter details page...")
+    matter_page.click_edit_button()
+    time.sleep(5)
+
+    print(f"End-to-End Workflow successfully completed! Matter clicked and Edit button pressed.")

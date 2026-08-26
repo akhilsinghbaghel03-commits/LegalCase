@@ -267,3 +267,27 @@ class MatterPage(BasePage):
             print(f"click_matter_id notice: {e}")
         time.sleep(5)
         return False
+
+    def click_edit_button(self) -> bool:
+        """
+        Click on the Edit button on the Matter details page, and wait 5 seconds.
+        """
+        time.sleep(2)
+        try:
+            edit_btns = self.driver.find_elements(
+                By.XPATH,
+                "//button[contains(translate(., 'EDIT', 'edit'), 'edit')] | "
+                "//a[contains(translate(., 'EDIT', 'edit'), 'edit')] | "
+                "//*[contains(@class, 'edit-btn') or contains(@class, 'btn-edit') or contains(@id, 'Edit') or contains(@id, 'edit')]"
+            )
+            for btn in edit_btns:
+                if btn.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
+                    print("[SUCCESS] Clicked on Matter Edit button.")
+                    time.sleep(5)
+                    return True
+        except Exception as e:
+            print(f"click_edit_button notice: {e}")
+        time.sleep(5)
+        return False
+

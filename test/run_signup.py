@@ -1424,8 +1424,8 @@ def test_signup():
                     print(f"Warning: Could not click Create Matter / Save button: {e}")
                 time.sleep(5)
 
-                # 19. Click Matter ID
-                print("Clicking on Matter ID link...")
+                # 19. Click Matter
+                print("Clicking on Matter to open details...")
                 try:
                     matter_links = driver.find_elements(
                         By.XPATH,
@@ -1437,10 +1437,28 @@ def test_signup():
                     for m_link in matter_links:
                         if m_link.is_displayed():
                             driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", m_link)
-                            print("[SUCCESS] Clicked on Matter ID.")
+                            print("[SUCCESS] Clicked on Matter.")
                             break
                 except Exception as e:
-                    print(f"Notice: Click matter id: {e}")
+                    print(f"Notice: Click matter: {e}")
+                time.sleep(5)
+
+                # 20. Click Edit button
+                print("Clicking on Matter Edit button...")
+                try:
+                    edit_btns = driver.find_elements(
+                        By.XPATH,
+                        "//button[contains(translate(., 'EDIT', 'edit'), 'edit')] | "
+                        "//a[contains(translate(., 'EDIT', 'edit'), 'edit')] | "
+                        "//*[contains(@class, 'edit-btn') or contains(@class, 'btn-edit') or contains(@id, 'Edit') or contains(@id, 'edit')]"
+                    )
+                    for e_btn in edit_btns:
+                        if e_btn.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", e_btn)
+                            print("[SUCCESS] Clicked on Edit button.")
+                            break
+                except Exception as e:
+                    print(f"Notice: Click edit button: {e}")
                 time.sleep(5)
                     
             except Exception as e:
