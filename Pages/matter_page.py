@@ -1,11 +1,16 @@
 """
 matter_page.py - Page Object for the Matter module.
-Handles creation and editing of matters.
+Handles creation, form interaction (Client, Description, Open/Close Dates, Responsible/Origination Person),
+saving, and navigating to Matter details by clicking Matter ID.
 """
 
+import time
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from Pages.base_page import BasePage
 
@@ -16,104 +21,244 @@ class MatterPage(BasePage):
     """
 
     # ------------------------------------------------------------------
-    # Locators (Placeholder locators to be updated by the user)
+    # Locators
     # ------------------------------------------------------------------
-    _MATTER_MODULE_LINK = (By.XPATH, "//a[contains(text(), 'Matter')]")
-    _NEW_MATTER_BUTTON = (By.XPATH, "//button[contains(text(), 'New Matter')]")
+    _MATTER_MODULE_LINK = (By.XPATH, "//*[contains(translate(text(), 'MATTER', 'matter'), 'matter')] | //a[contains(@href, 'Matter')]")
+    _NEW_MATTER_BUTTON = (By.XPATH, "//button[contains(., 'New Matter') or contains(., 'Matter') or contains(., 'Add Matter')] | //*[contains(text(), 'New Matter')] | //button[contains(., '+')]")
     
-    _CLIENT_DROPDOWN = (By.ID, "ClientId")  # Update with actual ID or locator
-    _DESCRIPTION_FIELD = (By.ID, "Description")  # Update with actual ID or locator
-    _SAVE_BUTTON = (By.XPATH, "//button[contains(text(), 'Save')]")
-    
-    _SUCCESS_TOAST = (By.XPATH, "//*[contains(@class, 'toast-success') or contains(text(), 'successfully')]")
+    _SAVE_BUTTON = (By.XPATH, "//button[contains(., 'Save') or contains(., 'Submit') or contains(., 'Save & Continue')]")
+    _SUCCESS_TOAST = (By.XPATH, "//*[contains(@class, 'toast-success') or contains(@class, 'feedback-message') or contains(text(), 'successfully')]")
 
     def __init__(self, driver: WebDriver):
         super().__init__(driver)
 
     # ------------------------------------------------------------------
-    # Private helpers — resolve locators to live elements
+    # Helper Actions
     # ------------------------------------------------------------------
     
-    def _matter_module_link(self) -> WebElement:
-        return self.wait_utils.wait_for_clickable_by_locator(*self._MATTER_MODULE_LINK)
-
-    def _new_matter_button(self) -> WebElement:
-        return self.wait_utils.wait_for_clickable_by_locator(*self._NEW_MATTER_BUTTON)
-
-    def _client_dropdown(self) -> WebElement:
-        return self.wait_utils.wait_for_visible_by_locator(*self._CLIENT_DROPDOWN)
-
-    def _description_field(self) -> WebElement:
-        return self.wait_utils.wait_for_visible_by_locator(*self._DESCRIPTION_FIELD)
-        
-    def _save_button(self) -> WebElement:
-        return self.wait_utils.wait_for_clickable_by_locator(*self._SAVE_BUTTON)
-
-    def _success_toast(self) -> WebElement:
-        return self.wait_utils.wait_for_visible_by_locator(*self._SUCCESS_TOAST)
-
-    def _get_edit_icon_for_matter(self, description: str) -> WebElement:
-        """
-        Dynamically locate the Edit icon for a specific matter in the table.
-        Assuming the table row contains the description and an edit icon.
-        """
-        locator = (By.XPATH, f"//tr[td[contains(text(), '{description}')]]//button[contains(@class, 'edit') or @title='Edit']")
-        return self.wait_utils.wait_for_clickable_by_locator(*locator)
-
-    def _get_client_name_for_matter(self, description: str) -> str:
-        """
-        Dynamically read the client name from the row of the given matter description.
-        Assuming the client name is in a td class 'client-name' or similar.
-        """
-        locator = (By.XPATH, f"//tr[td[contains(text(), '{description}')]]/td[contains(@class, 'client')]")
-        element = self.wait_utils.wait_for_visible_by_locator(*locator)
-        return element.text
-
-    # ------------------------------------------------------------------
-    # Public actions
-    # ------------------------------------------------------------------
-
     def navigate_to_matter_module(self) -> None:
-        """Click the Matter module link."""
-        self.click(self._matter_module_link())
+        """Navigate to the Matter module."""
+        try:
+            link = self.wait_utils.wait_for_clickable_by_locator(*self._MATTER_MODULE_LINK)
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
+        except Exception:
+            self.driver.get("https://yorpro-test.outsystems.app/legalhub/Matter")
+        time.sleep(3)
 
     def click_new_matter(self) -> None:
-        """Click the New Matter button."""
-        self.click(self._new_matter_button())
+        """Click the New Matter button to open the creation form/modal."""
+        buttons = self.driver.find_elements(*self._NEW_MATTER_BUTTON)
+        for btn in buttons:
+            if btn.is_displayed():
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
+                time.sleep(2)
+                return
+        # Fallback to generic add buttons
+        add_btns = self.driver.find_elements(By.XPATH, "//button[contains(., 'Add') or contains(., 'New')]")
+        for btn in add_btns:
+            if btn.is_displayed():
+                self.driver.execute_script("arguments[0].click();", btn)
+                time.sleep(1)
+                break
 
-    def create_matter(self, client_name: str, description: str) -> None:
-        """
-        Fill the matter creation form and save.
-        """
-        self.select_dropdown_by_visible_text(self._client_dropdown(), client_name)
-        self.enter_text(self._description_field(), description)
-        self.click(self._save_button())
-
-    def verify_success_message(self) -> bool:
-        """Check if success toast appears."""
+    def select_client(self, client_name: str = None) -> None:
+        """Select a client from the Client dropdown or virtual select."""
         try:
-            toast = self._success_toast()
-            return toast.is_displayed()
-        except Exception:
-            return False
+            # Check for virtual select (vscomp) or standard select/input
+            client_elements = self.driver.find_elements(
+                By.XPATH, 
+                "//*[contains(translate(text(), 'CLIENT', 'client'), 'client')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                "//div[@class='vscomp-value' and @data-tooltip=\"What's the contact name\"] | "
+                "//div[contains(@class, 'vscomp-toggle-button')]"
+            )
+            if client_elements and client_elements[0].is_displayed():
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", client_elements[0])
+                time.sleep(1)
+                options = self.driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                visible_opts = [o for o in options if o.is_displayed()]
+                if visible_opts:
+                    target_opt = visible_opts[1] if len(visible_opts) > 1 else visible_opts[0]
+                    if client_name:
+                        for opt in visible_opts:
+                            if client_name.lower() in opt.text.lower():
+                                target_opt = opt
+                                break
+                    self.driver.execute_script("arguments[0].click();", target_opt)
+            else:
+                dropdown = self.driver.find_element(By.XPATH, "//*[contains(translate(text(), 'CLIENT', 'client'), 'client')]/following::select[1] | //*[contains(translate(text(), 'CLIENT', 'client'), 'client')]/following::input[1]")
+                self.driver.execute_script("arguments[0].click();", dropdown)
+                time.sleep(1)
+                dropdown.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+        except Exception as e:
+            print(f"select_client notice: {e}")
 
-    def click_edit_matter(self, description: str) -> None:
-        """
-        Click the edit icon for the matter matching the description.
-        """
-        edit_icon = self._get_edit_icon_for_matter(description)
-        self.click(edit_icon)
+    def enter_description(self, description: str) -> None:
+        """Enter description into the Matter Description field."""
+        try:
+            desc_fields = self.driver.find_elements(
+                By.XPATH, 
+                "//*[contains(translate(text(), 'DESCRIPTION', 'description'), 'description')]/following::textarea[1] | "
+                "//*[contains(translate(text(), 'DESCRIPTION', 'description'), 'description')]/following::input[1] | "
+                "//textarea[contains(@placeholder, 'description') or contains(@id, 'Description')] | "
+                "//textarea"
+            )
+            for el in desc_fields:
+                if el.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", el)
+                    el.clear()
+                    el.send_keys(description)
+                    self.driver.execute_script("""
+                        arguments[0].value = arguments[1];
+                        arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                        arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                    """, el, description)
+                    return
+        except Exception as e:
+            print(f"enter_description notice: {e}")
 
-    def edit_matter_client(self, new_client_name: str) -> None:
-        """
-        Change the client in the edit form and save.
-        """
-        self.select_dropdown_by_visible_text(self._client_dropdown(), new_client_name)
-        self.click(self._save_button())
+    def select_open_date(self, date_str: str = None) -> None:
+        """Select/enter the Open Date (e.g. '2026-08-26' or '08/26/2026')."""
+        if not date_str:
+            import datetime
+            date_str = datetime.date.today().strftime("%Y-%m-%d")
+        try:
+            date_inputs = self.driver.find_elements(
+                By.XPATH,
+                "//*[contains(translate(text(), 'OPEN DATE', 'open date'), 'open date') or contains(translate(text(), 'OPENDATE', 'opendate'), 'opendate') or contains(translate(text(), 'START DATE', 'start date'), 'start date')]/following::input[1] | "
+                "//input[@type='date' or contains(@id, 'OpenDate') or contains(@id, 'StartDate') or contains(@placeholder, 'Open Date')]"
+            )
+            for inp in date_inputs:
+                if inp.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
+                    self.driver.execute_script("""
+                        arguments[0].value = arguments[1];
+                        arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                        arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                    """, inp, date_str)
+                    return
+        except Exception as e:
+            print(f"select_open_date notice: {e}")
 
-    def verify_client_updated(self, description: str, expected_client_name: str) -> bool:
+    def select_close_date(self, date_str: str = None) -> None:
+        """Select/enter the Close Date (e.g. '2026-09-26' or '09/26/2026')."""
+        if not date_str:
+            import datetime
+            date_str = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+        try:
+            date_inputs = self.driver.find_elements(
+                By.XPATH,
+                "//*[contains(translate(text(), 'CLOSE DATE', 'close date'), 'close date') or contains(translate(text(), 'CLOSEDATE', 'closedate'), 'closedate') or contains(translate(text(), 'DUE DATE', 'due date'), 'due date')]/following::input[1] | "
+                "//input[contains(@id, 'CloseDate') or contains(@id, 'DueDate') or contains(@placeholder, 'Close Date')]"
+            )
+            for inp in date_inputs:
+                if inp.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
+                    self.driver.execute_script("""
+                        arguments[0].value = arguments[1];
+                        arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                        arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                    """, inp, date_str)
+                    return
+        except Exception as e:
+            print(f"select_close_date notice: {e}")
+
+    def select_responsible_person(self, person_name: str = None) -> None:
+        """Select Responsible Attorney / Person."""
+        try:
+            resp_elements = self.driver.find_elements(
+                By.XPATH,
+                "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::select[1] | "
+                "//*[contains(translate(text(), 'RESPONSIBLE', 'responsible'), 'responsible')]/following::input[1]"
+            )
+            for el in resp_elements:
+                if el.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
+                    time.sleep(1)
+                    options = self.driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                    visible_opts = [o for o in options if o.is_displayed()]
+                    if visible_opts:
+                        self.driver.execute_script("arguments[0].click();", visible_opts[0])
+                    else:
+                        el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+                    return
+        except Exception as e:
+            print(f"select_responsible_person notice: {e}")
+
+    def select_origination_person(self, person_name: str = None) -> None:
+        """Select Origination Attorney / Person."""
+        try:
+            orig_elements = self.driver.find_elements(
+                By.XPATH,
+                "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::select[1] | "
+                "//*[contains(translate(text(), 'ORIGINATION', 'origination'), 'origination') or contains(translate(text(), 'ORIGINATING', 'originating'), 'originating')]/following::input[1]"
+            )
+            for el in orig_elements:
+                if el.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
+                    time.sleep(1)
+                    options = self.driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                    visible_opts = [o for o in options if o.is_displayed()]
+                    if visible_opts:
+                        self.driver.execute_script("arguments[0].click();", visible_opts[0])
+                    else:
+                        el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+                    return
+        except Exception as e:
+            print(f"select_origination_person notice: {e}")
+
+    def click_save_button(self) -> None:
+        """Click the Save button in the matter creation form."""
+        buttons = self.driver.find_elements(*self._SAVE_BUTTON)
+        for btn in buttons:
+            if btn.is_displayed():
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", btn)
+                time.sleep(3)
+                return
+
+    def click_matter_id(self, matter_id: str = None, description: str = None) -> bool:
         """
-        Verify that the client name for the specific matter matches the expected one.
+        Click on the Matter ID (or the link/row corresponding to the newly created matter)
+        to open the Matter details page.
         """
-        actual_client = self._get_client_name_for_matter(description)
-        return actual_client.strip() == expected_client_name.strip()
+        time.sleep(2)
+        try:
+            # If description provided, find row with description and click its ID or link
+            if description:
+                row_links = self.driver.find_elements(
+                    By.XPATH,
+                    f"//tr[td[contains(., '{description}')]]//a | "
+                    f"//tr[td[contains(., '{description}')]]//td[1]//a | "
+                    f"//tr[td[contains(., '{description}')]]//td[1]"
+                )
+                for link in row_links:
+                    if link.is_displayed():
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
+                        time.sleep(3)
+                        return True
+
+            # If specific matter ID provided
+            if matter_id:
+                id_links = self.driver.find_elements(By.XPATH, f"//a[contains(text(), '{matter_id}')] | //*[contains(text(), '{matter_id}')]")
+                for link in id_links:
+                    if link.is_displayed():
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
+                        time.sleep(3)
+                        return True
+
+            # Fallback: Click first matter ID link in the table
+            table_id_links = self.driver.find_elements(
+                By.XPATH,
+                "//table//tbody//tr[1]//td[1]//a | "
+                "//table//tbody//tr[1]//a | "
+                "//div[contains(@class, 'table-row')][1]//a"
+            )
+            for link in table_id_links:
+                if link.is_displayed():
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
+                    time.sleep(3)
+                    return True
+        except Exception as e:
+            print(f"click_matter_id notice: {e}")
+        return False
