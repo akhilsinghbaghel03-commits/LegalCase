@@ -6,6 +6,10 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '30'))
     }
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         PROJECT_NAME    = 'Legalhub Automation'
         RECIPIENT_EMAIL = 'akhil.singh@yorpro.com'  // Configurable email placeholder
