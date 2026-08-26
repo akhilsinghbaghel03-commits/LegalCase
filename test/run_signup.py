@@ -1424,8 +1424,8 @@ def test_signup():
                     print(f"Warning: Could not click Create Matter / Save button: {e}")
                 time.sleep(5)
 
-                # 19. Click Matter
-                print("Clicking on Matter to open details...")
+                # 19. Click Matter ID
+                print("Clicking on Matter ID to open details...")
                 try:
                     matter_links = driver.find_elements(
                         By.XPATH,
@@ -1437,11 +1437,11 @@ def test_signup():
                     for m_link in matter_links:
                         if m_link.is_displayed():
                             driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", m_link)
-                            print("[SUCCESS] Clicked on Matter.")
+                            print("[SUCCESS] Clicked on Matter ID.")
                             break
                 except Exception as e:
-                    print(f"Notice: Click matter: {e}")
-                time.sleep(5)
+                    print(f"Notice: Click matter id: {e}")
+                time.sleep(2)
 
                 # 20. Click Edit button
                 print("Clicking on Matter Edit button...")

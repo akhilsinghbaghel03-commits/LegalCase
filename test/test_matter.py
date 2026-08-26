@@ -175,10 +175,10 @@ def test_matter_workflow(driver_setup):
     matter_page.click_save_button()
     time.sleep(5)
 
-    # 13. Click on the Matter to view details
-    print("Navigating into created Matter by clicking on the Matter...")
+    # 13. Click on the Matter ID to view details
+    print("Navigating into created Matter by clicking on the Matter ID...")
     clicked_id = matter_page.click_matter_id(description=matter_desc)
-    time.sleep(5)
+    time.sleep(2)
 
     # 14. Click on the Edit button
     print("Clicking on the Edit button on Matter details page...")

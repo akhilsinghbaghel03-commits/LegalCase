@@ -227,9 +227,9 @@ class MatterPage(BasePage):
     def click_matter_id(self, matter_id: str = None, description: str = None) -> bool:
         """
         Click on the Matter ID (or the link/row corresponding to the newly created matter)
-        to open the Matter details page, and wait 5 seconds.
+        to open the Matter details page, and wait 2 seconds.
         """
-        time.sleep(2)
+        time.sleep(1)
         try:
             if description:
                 row_links = self.driver.find_elements(
@@ -241,7 +241,7 @@ class MatterPage(BasePage):
                 for link in row_links:
                     if link.is_displayed():
                         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
-                        time.sleep(5)
+                        time.sleep(2)
                         return True
 
             if matter_id:
@@ -249,7 +249,7 @@ class MatterPage(BasePage):
                 for link in id_links:
                     if link.is_displayed():
                         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
-                        time.sleep(5)
+                        time.sleep(2)
                         return True
 
             table_id_links = self.driver.find_elements(
@@ -261,11 +261,11 @@ class MatterPage(BasePage):
             for link in table_id_links:
                 if link.is_displayed():
                     self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", link)
-                    time.sleep(5)
+                    time.sleep(2)
                     return True
         except Exception as e:
             print(f"click_matter_id notice: {e}")
-        time.sleep(5)
+        time.sleep(2)
         return False
 
     def click_edit_button(self) -> bool:
