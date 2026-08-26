@@ -125,54 +125,54 @@ def test_matter_workflow(driver_setup):
     # 4. Navigate to Matter Module
     print("Navigating to Matter module...")
     matter_page.navigate_to_matter_module()
-    time.sleep(3)
+    time.sleep(5)
 
     # 5. Click New Matter
     print("Opening New Matter form...")
     matter_page.click_new_matter()
-    time.sleep(2)
+    time.sleep(5)
 
     # 6. Select Client
     print(f"Selecting Client ({person_full})...")
     matter_page.select_client(client_name=person_first)
-    time.sleep(1)
+    time.sleep(5)
 
     # 7. Enter Description with valid data
     matter_desc = f"Corporate Legal Case - {person_last} ({timestamp})"
     print(f"Entering Description: {matter_desc}")
     matter_page.enter_description(matter_desc)
-    time.sleep(1)
+    time.sleep(5)
 
     # 8. Select Open Date
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     print(f"Setting Open Date: {today_str}")
     matter_page.select_open_date(today_str)
-    time.sleep(1)
+    time.sleep(5)
 
     # 9. Select Close Date (45 days from today)
     close_date_str = (datetime.date.today() + datetime.timedelta(days=45)).strftime("%Y-%m-%d")
     print(f"Setting Close Date: {close_date_str}")
     matter_page.select_close_date(close_date_str)
-    time.sleep(1)
+    time.sleep(5)
 
     # 10. Select Responsible Person
     print("Selecting Responsible Person...")
     matter_page.select_responsible_person()
-    time.sleep(1)
+    time.sleep(5)
 
     # 11. Select Origination Person
     print("Selecting Origination Person...")
     matter_page.select_origination_person()
-    time.sleep(1)
+    time.sleep(5)
 
     # 12. Click Save Button
     print("Clicking Save button for Matter...")
     matter_page.click_save_button()
-    time.sleep(4)
+    time.sleep(5)
 
     # 13. Click on the Matter ID link to view Matter details
     print("Navigating into created Matter by clicking Matter ID...")
     clicked_id = matter_page.click_matter_id(description=matter_desc)
-    time.sleep(3)
+    time.sleep(5)
 
     print(f"End-to-End Workflow successfully completed! Matter ID clicked: {clicked_id}")

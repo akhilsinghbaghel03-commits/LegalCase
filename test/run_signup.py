@@ -1279,6 +1279,7 @@ def test_signup():
                             print("Warning: Client dropdown opened but no options visible.")
                     except Exception as e:
                         print(f"Warning: Could not select client: {e}")
+                    time.sleep(5)
                         
                     # 17. Enter Description
                     matter_desc = "Automated Test Matter Description - " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1295,6 +1296,7 @@ def test_signup():
                                 break
                     except Exception as e:
                         print(f"Warning: Could not enter description: {e}")
+                    time.sleep(5)
 
                     # 17.1 Select Open Date
                     today_str = datetime.date.today().strftime("%Y-%m-%d")
@@ -1313,6 +1315,7 @@ def test_signup():
                                 break
                     except Exception as e:
                         print(f"Notice: Open Date selection: {e}")
+                    time.sleep(5)
 
                     # 17.2 Select Close Date
                     close_date_str = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
@@ -1331,6 +1334,7 @@ def test_signup():
                                 break
                     except Exception as e:
                         print(f"Notice: Close Date selection: {e}")
+                    time.sleep(5)
 
                     # 17.3 Select Responsible Person
                     print("Selecting Responsible Person...")
@@ -1356,6 +1360,7 @@ def test_signup():
                                 break
                     except Exception as e:
                         print(f"Notice: Responsible person selection: {e}")
+                    time.sleep(5)
 
                     # 17.4 Select Origination Person
                     print("Selecting Origination Person...")
@@ -1381,6 +1386,7 @@ def test_signup():
                                 break
                     except Exception as e:
                         print(f"Notice: Origination person selection: {e}")
+                    time.sleep(5)
                         
                     # 18. Save Matter
                     print("Saving Matter...")
@@ -1396,14 +1402,13 @@ def test_signup():
                             except Exception:
                                 driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
                             print("[SUCCESS] Matter saved button clicked.")
-                            time.sleep(4)
                     except Exception as e:
                         print(f"Warning: Could not save matter: {e}")
+                    time.sleep(5)
 
                     # 19. Click Matter ID
                     print("Clicking on Matter ID link...")
                     try:
-                        time.sleep(2)
                         matter_links = driver.find_elements(
                             By.XPATH,
                             f"//tr[td[contains(., '{matter_desc}')]]//a | "
@@ -1415,10 +1420,10 @@ def test_signup():
                             if m_link.is_displayed():
                                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", m_link)
                                 print("[SUCCESS] Clicked on Matter ID.")
-                                time.sleep(3)
                                 break
                     except Exception as e:
                         print(f"Notice: Click matter id: {e}")
+                    time.sleep(5)
 
                         
                 except Exception as e:
