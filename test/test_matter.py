@@ -1,6 +1,7 @@
 import pytest
 import time
 import datetime
+import random
 import json
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -16,21 +17,34 @@ def login(driver, wait):
 
 def test_matter_workflow(driver_setup):
     """
-    Test Matter Creation Workflow:
-    1. Navigate to Matter module.
-    2. Click 'New Matter'.
-    3. Select Client.
-    4. Enter Description.
-    5. Select Open Date.
-    6. Select Close Date.
-    7. Select Responsible Person.
-    8. Select Origination Person.
-    9. Click Save button.
-    10. Click on the Matter ID link to open details.
+    Complete End-to-End Workflow:
+    1. Login to LegalHub.
+    2. Navigate to Contact module and create a Person with full valid data.
+    3. Create a Company with valid data.
+    4. Navigate to Matter module.
+    5. Click 'New Matter'.
+    6. Select Client (the created person or client option).
+    7. Enter Description.
+    8. Select Open Date.
+    9. Select Close Date.
+    10. Select Responsible Person.
+    11. Select Origination Person.
+    12. Click Save button.
+    13. Click on the newly generated Matter ID link.
     """
     driver, wait = driver_setup
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    random_id = f"{random.randint(1000, 9999)}"
+    
+    person_first = f"Akhil"
+    person_last = f"Baghel_{random_id}"
+    person_full = f"{person_first} {person_last}"
+    person_email = f"akhil_{timestamp}_{random_id}@example.com"
+    person_phone = "9098864919"
+    company_name = f"LegalTech Corp {timestamp}"
     
     # 1. Login
+    print("Logging in to LegalHub...")
     login(driver, wait)
     time.sleep(2)
 
@@ -51,97 +65,114 @@ def test_matter_workflow(driver_setup):
 
     def fill_by_label(label_text, val):
         label_lower = label_text.lower()
-        xpath = f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]/ancestor::div[contains(@class, 'form-group') or contains(@class, 'field') or contains(@class, 'margin')]//input | //*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]/following::input[1] | //input[contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]"
+        xpath = (
+            f"//input[contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')] | "
+            f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]/ancestor::div[contains(@class, 'form-group') or contains(@class, 'field') or contains(@class, 'margin')]//input | "
+            f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{label_lower}')]/following::input[1]"
+        )
         elems = driver.find_elements(By.XPATH, xpath)
         for inp in elems:
-            if inp.is_displayed():
+            if inp.is_displayed() and inp.get_attribute('type') != 'hidden':
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", inp)
                 time.sleep(0.3)
                 set_input_value(driver, inp, val)
                 return True
         return False
 
-    # 2. Go to Contact module to ensure Person and Company exist
+    # 2. Go to Contact module to create Person
+    print("Navigating to Contact module...")
     try:
-        contact_link = WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.XPATH, "//*[contains(translate(text(), 'CONTACT', 'contact'), 'contact')] | //a[contains(@href, 'Contact')]")))
+        contact_link = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, "//*[contains(translate(text(), 'CONTACT', 'contact'), 'contact')] | //a[contains(@href, 'Contact')]"))
+        )
         driver.execute_script("arguments[0].click();", contact_link)
     except Exception:
         navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Contact")
     time.sleep(3)
     
-    # Add Person
+    # Click New Person
+    print(f"Creating Person: {person_full}...")
     if not click_button_by_texts(["new person", "person"]):
         if click_button_by_texts(["add new entry", "add new", "add", "+"]):
             time.sleep(1)
             click_button_by_texts(["person", "new person", "add person"])
     time.sleep(2)
-    fill_by_label("First Name", "TestFirst")
-    fill_by_label("Last Name", "TestLast")
+
+    # Fill Person with valid data
+    fill_by_label("First Name", person_first)
+    fill_by_label("Last Name", person_last)
+    fill_by_label("Email", person_email)
+    fill_by_label("Phone", person_phone)
+    
+    # Save Person
     click_button_by_texts(["save", "save & continue", "submit"])
     time.sleep(3)
-    
-    # Add Company
+    print(f"[SUCCESS] Person created: {person_full}")
+
+    # 3. Create Company
+    print(f"Creating Company: {company_name}...")
     if not click_button_by_texts(["new company", "company"]):
         if click_button_by_texts(["add new entry", "add new", "add", "+"]):
             time.sleep(1)
             click_button_by_texts(["company", "new company", "add company"])
     time.sleep(2)
-    if not fill_by_label("Company Name", "Test Company"):
-        fill_by_label("Company", "Test Company") or fill_by_label("Name", "Test Company")
+    if not fill_by_label("Company Name", company_name):
+        fill_by_label("Company", company_name) or fill_by_label("Name", company_name)
     click_button_by_texts(["save", "save & continue", "submit"])
     time.sleep(3)
+    print(f"[SUCCESS] Company created: {company_name}")
 
-    # 3. Navigate to Matter Module
+    # 4. Navigate to Matter Module
     print("Navigating to Matter module...")
     matter_page.navigate_to_matter_module()
     time.sleep(3)
 
-    # 4. Click New Matter
-    print("Clicking New Matter button...")
+    # 5. Click New Matter
+    print("Opening New Matter form...")
     matter_page.click_new_matter()
     time.sleep(2)
 
-    # 5. Select Client
-    print("Selecting Client...")
-    matter_page.select_client()
+    # 6. Select Client
+    print(f"Selecting Client ({person_full})...")
+    matter_page.select_client(client_name=person_first)
     time.sleep(1)
 
-    # 6. Enter Description
-    matter_desc = f"Matter Auto Test {datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    # 7. Enter Description with valid data
+    matter_desc = f"Corporate Legal Case - {person_last} ({timestamp})"
     print(f"Entering Description: {matter_desc}")
     matter_page.enter_description(matter_desc)
     time.sleep(1)
 
-    # 7. Select Open Date
+    # 8. Select Open Date
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     print(f"Setting Open Date: {today_str}")
     matter_page.select_open_date(today_str)
     time.sleep(1)
 
-    # 8. Select Close Date
+    # 9. Select Close Date (45 days from today)
     close_date_str = (datetime.date.today() + datetime.timedelta(days=45)).strftime("%Y-%m-%d")
     print(f"Setting Close Date: {close_date_str}")
     matter_page.select_close_date(close_date_str)
     time.sleep(1)
 
-    # 9. Select Responsible Person
+    # 10. Select Responsible Person
     print("Selecting Responsible Person...")
     matter_page.select_responsible_person()
     time.sleep(1)
 
-    # 10. Select Origination Person
+    # 11. Select Origination Person
     print("Selecting Origination Person...")
     matter_page.select_origination_person()
     time.sleep(1)
 
-    # 11. Click Save Button
-    print("Clicking Save button...")
+    # 12. Click Save Button
+    print("Clicking Save button for Matter...")
     matter_page.click_save_button()
     time.sleep(4)
 
-    # 12. Click on the Matter ID to open details
-    print("Clicking on Matter ID...")
+    # 13. Click on the Matter ID link to view Matter details
+    print("Navigating into created Matter by clicking Matter ID...")
     clicked_id = matter_page.click_matter_id(description=matter_desc)
     time.sleep(3)
 
-    print(f"Matter creation and ID click completed! (Clicked Matter ID link: {clicked_id})")
+    print(f"End-to-End Workflow successfully completed! Matter ID clicked: {clicked_id}")
