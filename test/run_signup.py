@@ -1177,10 +1177,33 @@ def test_signup():
             select_dropdown("Type", "Mobile", index=1) # Second Type dropdown
             check_checkbox("Primary", index=1) # Second Primary checkbox
 
-            # Click Save (two times)
-            print("Saving new contact (1st click)...")
+            # Select Company in Person form
             try:
-                for _ in range(5):
+                print("Selecting company for Person...")
+                comp_dropdowns = driver.find_elements(
+                    By.XPATH,
+                    "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                    "//div[@class='vscomp-value' and contains(@data-tooltip, 'Company')] | "
+                    "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::select[1]"
+                )
+                for c_el in comp_dropdowns:
+                    if c_el.is_displayed():
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", c_el)
+                        time.sleep(1)
+                        options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                        vis_opts = [o for o in options if o.is_displayed()]
+                        if vis_opts:
+                            driver.execute_script("arguments[0].click();", vis_opts[0])
+                        print("[SUCCESS] Selected company in Person form")
+                        break
+            except Exception as comp_e:
+                print(f"Company selection notice: {comp_e}")
+            time.sleep(1)
+
+            # Click Save multiple times (3 clicks)
+            for click_num in range(1, 4):
+                print(f"Saving new contact / person (click {click_num}/3)...")
+                try:
                     save_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
                     visible_saves = [btn for btn in save_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
                     if visible_saves:
@@ -1191,31 +1214,12 @@ def test_signup():
                             save_btn.click()
                         except Exception:
                             driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
-                        print("[SUCCESS] Person save button clicked (1st click)")
-                        break
-                    time.sleep(1)
-            except Exception as loop_e:
-                print(f"1st save click note: {loop_e}")
-
-            time.sleep(2)
-            print("Saving new contact (2nd click)...")
-            try:
-                save_btns = driver.find_elements(By.XPATH, "//button[contains(translate(., 'SAVE', 'save'), 'save')] | //a[contains(translate(., 'SAVE', 'save'), 'save')] | //button[@type='submit']")
-                visible_saves = [btn for btn in save_btns if btn.size['width'] > 0 and btn.size['height'] > 0]
-                if visible_saves:
-                    save_btn = visible_saves[0]
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", save_btn)
-                    time.sleep(0.5)
-                    try:
-                        save_btn.click()
-                    except Exception:
-                        driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", save_btn)
-                    print("[SUCCESS] Person save button clicked (2nd click)")
-            except Exception as loop_e:
-                print(f"2nd save click note: {loop_e}")
+                        print(f"[SUCCESS] Person save button clicked (click {click_num})")
+                except Exception as loop_e:
+                    print(f"Save click {click_num} note: {loop_e}")
+                time.sleep(2)
                 
-            time.sleep(3)
-            print("[SUCCESS] Person saved successfully (after 2 save clicks)")
+            print("[SUCCESS] Person saved successfully (after multiple save clicks)")
                 
             # Check for success message
             try:

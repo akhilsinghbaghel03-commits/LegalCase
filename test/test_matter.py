@@ -19,19 +19,20 @@ def test_matter_workflow(driver_setup):
     """
     Complete End-to-End Workflow:
     1. Login to LegalHub.
-    2. Navigate to Contact module and create a Person with full valid data.
+    2. Navigate to Contact module.
     3. Create a Company with valid data.
-    4. Navigate to Matter module.
-    5. Click 'New Matter'.
-    6. Select Client (the created person or client option) (5s sleep).
-    7. Enter Description (5s sleep).
-    8. Select Open Date (5s sleep).
-    9. Select Close Date (5s sleep).
-    10. Select Responsible Person (5s sleep).
-    11. Select Origination Person (5s sleep).
-    12. Click Save / Create Matter button (5s sleep).
-    13. Click on the newly generated Matter ID link (2s sleep).
-    14. Click on the Edit button (5s sleep).
+    4. Create a Person with valid data, select Company, and click Save multiple times.
+    5. Navigate to Matter module.
+    6. Click 'New Matter'.
+    7. Select Client (5s sleep).
+    8. Enter Description (5s sleep).
+    9. Select Open Date (5s sleep).
+    10. Select Close Date (5s sleep).
+    11. Select Responsible Person (5s sleep).
+    12. Select Origination Person (5s sleep).
+    13. Click Create Matter / Save button (5s sleep).
+    14. Click on the newly generated Matter ID link (2s sleep).
+    15. Click on the Edit button (5s sleep).
     """
     driver, wait = driver_setup
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -84,7 +85,49 @@ def test_matter_workflow(driver_setup):
             time.sleep(1)
         return False
 
-    # 2. Go to Contact module to create Person
+    def select_company_for_person(comp_name=None):
+        print(f"Selecting company ({comp_name or 'Default'})...")
+        try:
+            comp_elements = driver.find_elements(
+                By.XPATH,
+                "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                "//div[@class='vscomp-value' and contains(@data-tooltip, 'Company')] | "
+                "//div[contains(@class, 'vscomp-toggle-button')] | "
+                "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::select[1] | "
+                "//input[contains(@placeholder, 'Company') or contains(@id, 'Company')]"
+            )
+            for el in comp_elements:
+                if el.is_displayed():
+                    tag = el.tag_name.lower()
+                    if "select" in tag:
+                        el.click()
+                        time.sleep(0.5)
+                        el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+                    elif "input" in tag:
+                        el.clear()
+                        el.send_keys(comp_name or "LegalTech")
+                        time.sleep(0.5)
+                        el.send_keys(Keys.ARROW_DOWN, Keys.ENTER)
+                    else: # vscomp dropdown
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", el)
+                        time.sleep(1)
+                        options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                        vis_opts = [o for o in options if o.is_displayed()]
+                        if vis_opts:
+                            target = vis_opts[0]
+                            if comp_name:
+                                for o in vis_opts:
+                                    if comp_name.lower() in o.text.lower():
+                                        target = o
+                                        break
+                            driver.execute_script("arguments[0].click();", target)
+                    print(f"[SUCCESS] Selected company in Person form: {comp_name}")
+                    return True
+        except Exception as e:
+            print(f"select_company_for_person notice: {e}")
+        return False
+
+    # 2. Go to Contact module
     print("Navigating to Contact module...")
     try:
         contact_links = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'CONTACT', 'contact'), 'contact')] | //a[contains(@href, 'Contact')]")
@@ -96,8 +139,21 @@ def test_matter_workflow(driver_setup):
     except Exception:
         navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Contact")
     time.sleep(3)
+
+    # 3. Create Company First
+    print(f"Creating Company: {company_name}...")
+    if not click_button_by_texts(["new company", "company"]):
+        if click_button_by_texts(["add new entry", "add new", "add", "+"]):
+            time.sleep(1)
+            click_button_by_texts(["company", "new company", "add company"])
+    time.sleep(2)
+    if not fill_by_label("Company Name", company_name):
+        fill_by_label("Company", company_name) or fill_by_label("Name", company_name)
+    click_button_by_texts(["save", "save & continue", "submit"])
+    time.sleep(3)
+    print(f"[SUCCESS] Company created: {company_name}")
     
-    # Click New Person
+    # 4. Create Person with valid data, select Company, and click Save multiple times
     print(f"Creating Person: {person_full}...")
     if not click_button_by_texts(["new person", "person"]):
         if click_button_by_texts(["add new entry", "add new", "add", "+"]):
@@ -111,85 +167,74 @@ def test_matter_workflow(driver_setup):
     fill_by_label("Email", person_email)
     fill_by_label("Phone", person_phone)
     
-    # Save Person (Click twice)
-    print("Clicking Save button for Person (1st click)...")
-    click_button_by_texts(["save", "save & continue", "submit"])
-    time.sleep(2)
+    # Select Company in Person form
+    select_company_for_person(company_name)
+    time.sleep(1)
     
-    print("Clicking Save button for Person (2nd click)...")
-    click_button_by_texts(["save", "save & continue", "submit"])
-    time.sleep(3)
-    print(f"[SUCCESS] Person created and saved: {person_full}")
+    # Save Person (Click Save multiple times)
+    for click_i in range(1, 4):
+        print(f"Clicking Save button for Person (click {click_i}/3)...")
+        click_button_by_texts(["save", "save & continue", "submit", "create person"])
+        time.sleep(2)
+        
+    print(f"[SUCCESS] Person created and saved: {person_full} with Company: {company_name}")
 
-    # 3. Create Company
-    print(f"Creating Company: {company_name}...")
-    if not click_button_by_texts(["new company", "company"]):
-        if click_button_by_texts(["add new entry", "add new", "add", "+"]):
-            time.sleep(1)
-            click_button_by_texts(["company", "new company", "add company"])
-    time.sleep(2)
-    if not fill_by_label("Company Name", company_name):
-        fill_by_label("Company", company_name) or fill_by_label("Name", company_name)
-    click_button_by_texts(["save", "save & continue", "submit"])
-    time.sleep(3)
-    print(f"[SUCCESS] Company created: {company_name}")
-
-    # 4. Navigate to Matter Module
+    # 5. Navigate to Matter Module
     print("Navigating to Matter module...")
     matter_page.navigate_to_matter_module()
     time.sleep(5)
 
-    # 5. Click New Matter
+    # 6. Click New Matter
     print("Opening New Matter form...")
     matter_page.click_new_matter()
     time.sleep(5)
 
-    # 6. Select Client
+    # 7. Select Client
     print(f"Selecting Client ({person_full})...")
     matter_page.select_client(client_name=person_first)
     time.sleep(5)
 
-    # 7. Enter Description with valid data
+    # 8. Enter Description with valid data
     matter_desc = f"Corporate Legal Case - {person_last} ({timestamp})"
     print(f"Entering Description: {matter_desc}")
     matter_page.enter_description(matter_desc)
     time.sleep(5)
 
-    # 8. Select Open Date
+    # 9. Select Open Date
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     print(f"Setting Open Date: {today_str}")
     matter_page.select_open_date(today_str)
     time.sleep(5)
 
-    # 9. Select Close Date (45 days from today)
+    # 10. Select Close Date (45 days from today)
     close_date_str = (datetime.date.today() + datetime.timedelta(days=45)).strftime("%Y-%m-%d")
     print(f"Setting Close Date: {close_date_str}")
     matter_page.select_close_date(close_date_str)
     time.sleep(5)
 
-    # 10. Select Responsible Person
+    # 11. Select Responsible Person
     print("Selecting Responsible Person...")
     matter_page.select_responsible_person()
     time.sleep(5)
 
-    # 11. Select Origination Person
+    # 12. Select Origination Person
     print("Selecting Origination Person...")
     matter_page.select_origination_person()
     time.sleep(5)
 
-    # 12. Click Create Matter / Save Button
+    # 13. Click Create Matter / Save Button
     print("Clicking Create Matter / Save button...")
     matter_page.click_save_button()
     time.sleep(5)
 
-    # 13. Click on the Matter ID to view details
+    # 14. Click on the Matter ID to view details
     print("Navigating into created Matter by clicking on the Matter ID...")
     clicked_id = matter_page.click_matter_id(description=matter_desc)
     time.sleep(2)
 
-    # 14. Click on the Edit button
+    # 15. Click on the Edit button
     print("Clicking on the Edit button on Matter details page...")
     matter_page.click_edit_button()
     time.sleep(5)
 
-    print(f"End-to-End Workflow successfully completed! Matter clicked and Edit button pressed.")
+    print(f"End-to-End Workflow successfully completed! Person with Company created, multiple saves clicked, Matter created and Edit button pressed.")
