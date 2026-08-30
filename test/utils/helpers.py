@@ -77,16 +77,18 @@ def fill_field_by_keyword(driver, keyword, text, timeout=10):
     keyword = keyword.lower()
     end_time = time.time() + timeout
     while time.time() < end_time:
-        # First check inside popups, then fallback to all inputs
         elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup')]//input") + driver.find_elements(By.TAG_NAME, "input")
         for element in elements:
             try:
-                if element.is_displayed():
+                if element.is_displayed() and element.get_attribute('type') != 'hidden':
                     ph = (element.get_attribute("placeholder") or "").lower()
                     id_attr = (element.get_attribute("id") or "").lower()
-                    if keyword in ph or keyword in id_attr:
+                    name_attr = (element.get_attribute("name") or "").lower()
+                    if keyword in ph or keyword in id_attr or keyword in name_attr:
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
                         element.clear()
                         element.send_keys(text)
+                        set_input_value(driver, element, text)
                         return True
             except Exception:
                 pass
@@ -628,12 +630,11 @@ def perform_login(driver, wait, email=None, password=None):
             otp_found = True
             break
             
-        # 3. Check if login failed (error banner / feedback message or not-valid class)
-        error_msgs = driver.find_elements(By.XPATH, "//*[contains(@class, 'feedback-message') or contains(text(), 'Incorrect') or contains(text(), 'invalid') or contains(text(), 'not exist')]")
-        visible_errors = [e for e in error_msgs if e.is_displayed() and e.text.strip()]
-        email_el = driver.find_elements(By.XPATH, "//input[@id='Input_UserEmail' or @type='email']")
-        if visible_errors or (email_el and "not-valid" in (email_el[0].get_attribute("class") or "")):
-            print(f"Login failed for {email} (credentials incorrect or user not valid). Auto-registering a fresh user...")
+        # 3. Check if login failed with explicit error banner
+        error_msgs = driver.find_elements(By.XPATH, "//*[contains(@class, 'feedback-message-error') or contains(@class, 'feedback-message-text')]")
+        real_errors = [e.text.strip() for e in error_msgs if e.is_displayed() and any(k in e.text.lower() for k in ['incorrect', 'invalid username', 'invalid password', 'does not exist', 'not found'])]
+        if real_errors:
+            print(f"Login failed for {email} ({real_errors[0]}). Auto-registering a fresh user...")
             email, password = register_new_user(driver, wait)
             if "login" not in driver.current_url.lower() and "signup" not in driver.current_url.lower():
                 return
