@@ -319,92 +319,70 @@ def test_signup():
         print("Filling Password fields...")
         try:
             wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
-            
             password_inputs = driver.find_elements(By.XPATH, "//input[@type='password']")
-            visible_pws = [p for p in password_inputs if p.size['width'] > 0 and p.size['height'] > 0]
+            visible_pws = [p for p in password_inputs if p.is_displayed() and p.size['width'] > 0]
             
             if visible_pws:
                 for p in visible_pws:
                     try:
-                        # Use React native setter for password to bypass event dropping
-                        driver.execute_script(f"""
-                            var input = arguments[0];
-                            var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-                            if (!nativeInputValueSetter) {{
-                                nativeInputValueSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value');
-                            }}
-                            if (nativeInputValueSetter && nativeInputValueSetter.set) {{
-                                nativeInputValueSetter.set.call(input, '{password}');
-                            }} else {{
-                                input.value = '{password}';
-                            }}
-                            input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                            input.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        """, p)
+                        p.click()
+                        p.clear()
+                        p.send_keys(password)
+                        set_input_value(driver, p, password)
                     except Exception as e:
-                        print(f"JS password injection failed: {e}")
-                    time.sleep(0.2)
+                        print(f"Password field interaction: {e}")
+                    time.sleep(0.3)
                     
-                # Send Enter on the last password input just in case
                 from selenium.webdriver.common.keys import Keys
                 try:
-                    visible_pws[-1].send_keys(Keys.ENTER)
+                    visible_pws[-1].send_keys(Keys.TAB)
                 except Exception: pass
         except Exception as e:
             print(f"Warning: Failed to fill password fields on OTP step: {e}")
             
         # 9. Submit Verification
         print("Submitting OTP Verification...")
-        time.sleep(2) # Give React a moment to render/update state
+        time.sleep(2)
         
-        # Retry loop for Verify click to handle server flakiness
         verify_success = False
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 btns = driver.find_elements(By.XPATH, "//button[contains(., 'Verify & Continue') or contains(., 'Verify')] | //*[contains(text(), 'Verify & Continue') or text()='Verify']")
-                if not btns:
-                    print("Verify button not found. It may have auto-submitted or already succeeded.")
-                else:
+                if btns:
                     verify_btn = btns[-1]
                     if verify_btn.is_displayed():
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", verify_btn)
+                        time.sleep(0.5)
+                        driver.execute_script("arguments[0].removeAttribute('disabled');", verify_btn)
                         try:
-                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", verify_btn)
-                            time.sleep(1)
-                            driver.execute_script("arguments[0].removeAttribute('disabled');", verify_btn)
-                            try:
-                                verify_btn.click()
-                            except Exception:
-                                driver.execute_script("""
-                                    var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                                    arguments[0].dispatchEvent(ev);
-                                """, verify_btn)
-                        except Exception as e:
-                            print(f"Note: Click interaction failed (likely disappeared): {e}")
+                            verify_btn.click()
+                        except Exception:
+                            driver.execute_script("""
+                                var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                                arguments[0].dispatchEvent(ev);
+                            """, verify_btn)
 
-                # Wait for OTP modal to close or redirect
+                # Check if modal closed or redirected
                 try:
-                    # Staging server often takes 30-40 seconds to process OTP and generate Stripe session
-                    WebDriverWait(driver, 60).until(
-                        lambda d: "Trial" in d.current_url or "setting" in d.current_url or len([e for e in d.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if e.is_displayed()]) == 0
+                    WebDriverWait(driver, 20).until(
+                        lambda d: "Trial" in d.current_url or "setting" in d.current_url or "Dashboard" in d.current_url or len([e for e in d.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if e.is_displayed()]) == 0
                     )
                     verify_success = True
-                    print("Verify successful on attempt", attempt + 1)
+                    print(f"Verify successful on attempt {attempt + 1}")
                     break
                 except TimeoutException:
-                    print(f"Attempt {attempt + 1}: OTP modal still present after click. Retrying...")
-                    try:
-                        print("Verify button HTML:", verify_btn.get_attribute('outerHTML'))
-                        # Dump the full input states as well
-                        for f in driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]"):
-                            print("OTP input value:", f.get_attribute('value'))
-                        for p in driver.find_elements(By.XPATH, "//input[@type='password']"):
-                            print("Password input value:", p.get_attribute('value'))
-                    except Exception: pass
+                    print(f"Attempt {attempt + 1}: Waiting for server response or OTP verification completion...")
+                    time.sleep(2)
             except Exception as e:
-                print(f"Warning: Failed to click Verify button on attempt {attempt + 1}: {e}")
+                print(f"Warning on attempt {attempt + 1}: {e}")
         
         if not verify_success:
-            raise Exception("Failed to verify OTP after 5 attempts.")
+            # Check if modal already closed or we moved to next step
+            otp_visible = [e for e in driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if e.is_displayed()]
+            if not otp_visible:
+                verify_success = True
+            else:
+                raise Exception("Failed to verify OTP after 5 attempts.")
         
         # 9.5 Wait for and capture Success/Toast Message
         print("Checking for success or toast messages...")

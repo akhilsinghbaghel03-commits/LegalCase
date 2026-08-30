@@ -247,31 +247,53 @@ def enter_otp_digits(driver, otp_code):
     """Accurately enter OTP code into OutSystems / React OTP inputs."""
     print(f"Entering valid OTP: {otp_code}")
     from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.webdriver.common.keys import Keys
     
     otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP') or contains(@class, 'otp') or contains(@placeholder, 'OTP')]")
     visible_fields = [f for f in otp_fields if f.is_displayed() and f.get_attribute('type') != 'hidden']
     
-    if len(visible_fields) >= len(otp_code):
-        # Multi-box OTP input
-        for idx, char in enumerate(otp_code):
-            box = visible_fields[idx]
+    if len(visible_fields) > 1:
+        # Segmented multi-box input
+        try:
+            visible_fields[0].click()
+        except Exception:
+            driver.execute_script("arguments[0].focus(); arguments[0].click();", visible_fields[0])
+        time.sleep(0.5)
+        
+        # Clear any existing text in all boxes
+        for box in visible_fields:
             try:
-                driver.execute_script("arguments[0].focus();", box)
-                box.clear()
-                box.send_keys(char)
-                set_input_value(driver, box, char)
+                driver.execute_script("arguments[0].value = '';", box)
+            except Exception: pass
+            
+        try:
+            visible_fields[0].click()
+        except Exception: pass
+        time.sleep(0.2)
+        
+        for i, char in enumerate(otp_code):
+            try:
+                if i < len(visible_fields):
+                    driver.execute_script("""
+                        arguments[0].focus();
+                        arguments[0].value = arguments[1];
+                        arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                        arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                    """, visible_fields[i], char)
+                ActionChains(driver).send_keys(char).perform()
             except Exception:
                 pass
-            time.sleep(0.1)
+            time.sleep(0.2)
+            
         try:
             visible_fields[-1].send_keys(Keys.TAB)
         except Exception:
             pass
     elif visible_fields:
-        # Single box OTP input
+        # Single input field for entire OTP
         single_box = visible_fields[0]
         try:
-            driver.execute_script("arguments[0].focus();", single_box)
+            single_box.click()
             single_box.clear()
             single_box.send_keys(otp_code)
             set_input_value(driver, single_box, otp_code)
