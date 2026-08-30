@@ -256,23 +256,39 @@ def test_signup():
         # 5. Submit form using Javascript to bypass overlays (Click 'Send Verification Code')
         print("Clicking 'Send Verification Code'...")
         time.sleep(2) # Give UI a moment to validate
-        submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Send Verification Code')]")))
-        
-        # Click using Javascript to bypass overlays
-        driver.execute_script("""
-            arguments[0].scrollIntoView({block: 'center'});
-            var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-            arguments[0].dispatchEvent(ev);
-        """, submit_btn)
-        
-        # 6. Wait for OTP UI to appear
-        print("Waiting for OTP fields...")
+        submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Send Verification Code') or contains(., 'Next')]")))
         try:
-            # Look for OTP inputs
-            wait.until(EC.presence_of_element_located((By.XPATH, "//input[contains(@id,'OTP')]")))
-        except TimeoutException:
-            # Fallback if OTP verification page takes time or looks different
-            time.sleep(3)
+            submit_btn.click()
+        except Exception:
+            pass
+        try:
+            driver.execute_script("""
+                arguments[0].scrollIntoView({block: 'center'});
+                var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                arguments[0].dispatchEvent(ev);
+            """, submit_btn)
+        except Exception:
+            pass
+        
+        # 6. Wait for OTP UI to appear with retry clicking
+        print("Waiting for OTP fields...")
+        otp_inputs_found = False
+        for _ in range(30):
+            otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]")
+            if otp_fields and any(f.is_displayed() for f in otp_fields):
+                otp_inputs_found = True
+                break
+            time.sleep(1)
+            try:
+                driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", submit_btn)
+            except Exception:
+                pass
+            
+        if not otp_inputs_found:
+            try:
+                WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.XPATH, "//input[contains(@id,'OTP')]")))
+            except Exception:
+                pass
             
         otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]")
         if not otp_fields:
