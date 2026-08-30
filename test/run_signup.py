@@ -1500,9 +1500,13 @@ def test_signup():
         import traceback
         print(f"Error in main test flow: {e}\n{traceback.format_exc()}")
         if driver:
-            driver.save_screenshot("error_screenshot.png")
-            with open("error_source.html", "w", encoding="utf-8") as err_f:
-                err_f.write(driver.page_source)
+            try:
+                driver.save_screenshot("error_screenshot.png")
+            except: pass
+            try:
+                with open("error_source.html", "w", encoding="utf-8") as err_f:
+                    err_f.write(driver.page_source)
+            except: pass
         result["errors"] = str(e)
     finally:
         if driver:
@@ -1511,9 +1515,11 @@ def test_signup():
             except: pass
             
         print("Stopping screen recording...")
-        stop_recording.set()
-        recording_thread.join()
-        print(f"Saved recording to {video_filename}")
+        try:
+            stop_recording.set()
+            recording_thread.join()
+            print(f"Saved recording to {video_filename}")
+        except: pass
         
     print(json.dumps(result, indent=2))
     assert result["test_status"] == "passed", f"Signup test failed: {result.get('errors')}"
