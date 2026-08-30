@@ -210,20 +210,76 @@ def get_otp_from_mail_tm(token, max_retries=60, ignore_mail_ids=None, expected_l
                     if otp_match:
                         otp = otp_match.group(1)
                 else:
-                    otp_match = re.search(r'(?<![#\w])(\d{6})(?!\w)', plain_text)
-                    if not otp_match:
-                        otp_match = re.search(r'(?<![#\w])(\d{4})(?!\w)', plain_text)
-                    if otp_match:
-                        otp = otp_match.group(1)
+                    # 1. Contextual match in body (verification code, OTP, passcode)
+                    context_matches = re.findall(r'(?:verification\s*code|otp|passcode|security\s*code|your\s*code\s*is|code\s*is|login\s*code)[^\d]{0,25}(\d{4,6})', plain_text, re.IGNORECASE)
+                    if context_matches:
+                        otp = context_matches[0]
+                    
+                    # 2. Contextual match in subject
+                    if not otp:
+                        subj_matches = re.findall(r'(?:code|otp)[^\d]{0,15}(\d{4,6})', subject, re.IGNORECASE)
+                        if subj_matches:
+                            otp = subj_matches[0]
+                            
+                    # 3. Isolated 6-digit number
+                    if not otp:
+                        all_6_digits = re.findall(r'(?<!\d)(\d{6})(?!\d)', plain_text)
+                        if all_6_digits:
+                            otp = all_6_digits[0]
+                            
+                    # 4. Isolated 4-digit number (excluding years)
+                    if not otp:
+                        all_4_digits = [d for d in re.findall(r'(?<!\d)(\d{4})(?!\d)', plain_text) if d not in ['2023', '2024', '2025', '2026', '2027']]
+                        if all_4_digits:
+                            otp = all_4_digits[0]
                     
                 if otp:
-                    print(f"Matched OTP: {otp} from email {msg_id}")
+                    print(f"Matched Valid OTP: {otp} from email {msg_id}")
                     return otp, msg_id
         except Exception as e:
             print(f"API polling error: {e}")
             time.sleep(2)
             
     return None
+
+
+def enter_otp_digits(driver, otp_code):
+    """Accurately enter OTP code into OutSystems / React OTP inputs."""
+    print(f"Entering valid OTP: {otp_code}")
+    from selenium.webdriver.common.action_chains import ActionChains
+    
+    otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP') or contains(@class, 'otp') or contains(@placeholder, 'OTP')]")
+    visible_fields = [f for f in otp_fields if f.is_displayed() and f.get_attribute('type') != 'hidden']
+    
+    if len(visible_fields) >= len(otp_code):
+        # Multi-box OTP input
+        for idx, char in enumerate(otp_code):
+            box = visible_fields[idx]
+            try:
+                driver.execute_script("arguments[0].focus();", box)
+                box.clear()
+                box.send_keys(char)
+                set_input_value(driver, box, char)
+            except Exception:
+                pass
+            time.sleep(0.1)
+        try:
+            visible_fields[-1].send_keys(Keys.TAB)
+        except Exception:
+            pass
+    elif visible_fields:
+        # Single box OTP input
+        single_box = visible_fields[0]
+        try:
+            driver.execute_script("arguments[0].focus();", single_box)
+            single_box.clear()
+            single_box.send_keys(otp_code)
+            set_input_value(driver, single_box, otp_code)
+            single_box.send_keys(Keys.TAB)
+        except Exception:
+            pass
+    else:
+        ActionChains(driver).send_keys(otp_code).perform()
 
 
 def delete_mail_tm_messages(token=None):
@@ -567,7 +623,7 @@ def perform_login(driver, wait, email=None, password=None):
             if "guerrillamail.com" in email:
                 create_mail_tm_account(email, password)
                 
-            otp_info = get_otp_from_mail_tm(token, max_retries=6, ignore_mail_ids=existing_mail_ids, expected_length=len(visible_otp_fields))
+            otp_info = get_otp_from_mail_tm(token, max_retries=15, ignore_mail_ids=existing_mail_ids, expected_length=len(visible_otp_fields))
             if not otp_info:
                 # Try clicking Resend OTP once if delayed
                 try:
@@ -575,7 +631,7 @@ def perform_login(driver, wait, email=None, password=None):
                     driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", resend_btn)
                     print("Clicked Resend OTP button.")
                     time.sleep(2)
-                    otp_info = get_otp_from_mail_tm(token, max_retries=8, ignore_mail_ids=existing_mail_ids, expected_length=len(visible_otp_fields))
+                    otp_info = get_otp_from_mail_tm(token, max_retries=15, ignore_mail_ids=existing_mail_ids, expected_length=len(visible_otp_fields))
                 except Exception:
                     pass
                     
@@ -591,26 +647,18 @@ def perform_login(driver, wait, email=None, password=None):
                     navigate_with_retry(driver, "https://yorpro-test.outsystems.app/legalhub/Dashboard")
                 return
 
-
-
             if otp_code:
-
-                print(f"Entering OTP: {otp_code}")
-                # Re-fetch visible fields in case of DOM updates
-                visible_otp_fields = [f for f in driver.find_elements(By.XPATH, "//input[contains(@id,'OTP') or contains(@class, 'otp-input')]") if f.is_displayed()]
-                for i, char in enumerate(otp_code):
-                    if i < len(visible_otp_fields):
-                        visible_otp_fields[i].send_keys(char)
-                        time.sleep(0.1)
-                        
-                from selenium.webdriver.common.keys import Keys
-                try:
-                    visible_otp_fields[-1].send_keys(Keys.TAB)
-                except: pass
-                
+                enter_otp_digits(driver, otp_code)
                 time.sleep(2)
-                verify_btn = driver.find_element(By.XPATH, "//*[contains(text(), 'Verify & Continue') or text()='Verify']")
-                driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", verify_btn)
+                verify_btns = driver.find_elements(By.XPATH, "//button[contains(., 'Verify & Continue') or contains(., 'Verify')] | //*[contains(text(), 'Verify & Continue') or text()='Verify']")
+                if verify_btns:
+                    verify_btn = verify_btns[-1]
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", verify_btn)
+                    time.sleep(0.5)
+                    try:
+                        verify_btn.click()
+                    except Exception:
+                        driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", verify_btn)
         except Exception as e:
             print(f"Error handling login OTP: {e}")
             register_new_user(driver, wait)

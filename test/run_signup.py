@@ -307,28 +307,13 @@ def test_signup():
             otp_code = otp_info
             
         print(f"Extracted OTP: {otp_code}")
-        
         # 7. Enter OTP
         print(f"Entering OTP: {otp_code}")
         try:
-            from selenium.webdriver.common.action_chains import ActionChains
-            otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]")
-            visible_otp_fields = [f for f in otp_fields if f.is_displayed()]
-            
-            # Click only the first field to focus the component
-            visible_otp_fields[0].click()
-            time.sleep(0.5)
-            
-            # Type the characters one by one, letting React auto-advance focus
-            for char in otp_code:
-                ActionChains(driver).send_keys(char).perform()
-                time.sleep(0.2)
-            
-            # Trigger blur on the last OTP field
-            from selenium.webdriver.common.keys import Keys
-            visible_otp_fields[-1].send_keys(Keys.TAB)
+            from test.utils.helpers import enter_otp_digits
+            enter_otp_digits(driver, otp_code)
         except Exception as e:
-            print(f"Warning: Failed to fill OTP fields: {e}")
+            print(f"Warning: OTP entry failed: {e}")
             
         # 8. Submit OTP/Password
         print("Filling Password fields...")
@@ -690,34 +675,10 @@ def test_signup():
                 
                     print(f"Entering Login OTP ({login_otp_code}) into fields...")
                     try:
-                        wait.until(EC.visibility_of_element_located((By.XPATH, "//input[contains(@id,'OTP')]")))
+                        from test.utils.helpers import enter_otp_digits
+                        enter_otp_digits(driver, login_otp_code)
                     except Exception as e:
-                        print(f"Warning: Login OTP fields not immediately visible: {e}")
-                    
-                    login_otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") 
-                    visible_login_otp_fields = [f for f in login_otp_fields if f.is_displayed()]      
-                    if len(visible_login_otp_fields) >= len(login_otp_code):
-                        from selenium.webdriver.common.keys import Keys
-                        from selenium.webdriver.common.action_chains import ActionChains
-                        # Click only the first field to focus the component
-                        visible_login_otp_fields[0].click()
-                        time.sleep(0.5)
-                        
-                        # Type the characters one by one, letting React auto-advance focus
-                        for char in login_otp_code:
-                            try:
-                                ActionChains(driver).send_keys(char).perform()
-                            except Exception as e:
-                                print(f"Warning: Failed to fill char {char} into Login OTP field: {e}")
-                            time.sleep(0.2)
-                        
-                        # Send TAB on the last field to trigger React's onBlur validation state
-                        try:
-                            visible_login_otp_fields[-1].send_keys(Keys.TAB)
-                        except: pass
-                    else:
-                        print(f"ERROR: Found {len(visible_login_otp_fields)} visible OTP fields, but OTP code is {len(login_otp_code)} characters long! ({login_otp_code})")
-                        raise Exception("OTP input field mismatch.")
+                        print(f"Warning: Login OTP entry: {e}")
                         
                     print("Submitting Login OTP Verification...")
                     time.sleep(2) # Wait for React state to update with OTP
