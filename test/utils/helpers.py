@@ -256,13 +256,6 @@ def enter_otp_digits(driver, otp_code):
     
     if len(visible_fields) > 1:
         # Segmented multi-box input
-        try:
-            visible_fields[0].click()
-        except Exception:
-            driver.execute_script("arguments[0].focus(); arguments[0].click();", visible_fields[0])
-        time.sleep(0.5)
-        
-        # Clear any existing text in all boxes
         for box in visible_fields:
             try:
                 driver.execute_script("arguments[0].value = '';", box)
@@ -270,22 +263,22 @@ def enter_otp_digits(driver, otp_code):
             
         try:
             visible_fields[0].click()
-        except Exception: pass
-        time.sleep(0.2)
+        except Exception:
+            driver.execute_script("arguments[0].focus(); arguments[0].click();", visible_fields[0])
+        time.sleep(0.3)
         
-        for i, char in enumerate(otp_code):
-            try:
-                if i < len(visible_fields):
-                    driver.execute_script("""
-                        arguments[0].focus();
-                        arguments[0].value = arguments[1];
-                        arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
-                        arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
-                    """, visible_fields[i], char)
-                ActionChains(driver).send_keys(char).perform()
-            except Exception:
-                pass
+        # Type one by one via ActionChains
+        for char in otp_code:
+            ActionChains(driver).send_keys(char).perform()
             time.sleep(0.2)
+            
+        # Verify single digit per box
+        for i, char in enumerate(otp_code):
+            if i < len(visible_fields):
+                val = visible_fields[i].get_attribute('value')
+                if not val or val != char:
+                    set_input_value(driver, visible_fields[i], char)
+                    time.sleep(0.1)
             
         try:
             visible_fields[-1].send_keys(Keys.TAB)
