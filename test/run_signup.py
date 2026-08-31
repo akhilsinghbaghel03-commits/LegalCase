@@ -5,10 +5,6 @@ import random
 import os
 import re
 import urllib.request
-import threading
-import cv2
-import mss
-import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -155,25 +151,6 @@ def fill_stripe_form(driver, wait):
         except Exception as native_e:
             print(f"Native click also failed: {native_e}")
 
-def screen_recorder(stop_event, filename):
-    with mss.MSS() as sct:
-        monitor = sct.monitors[1]
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out = cv2.VideoWriter(filename, fourcc, 10.0, (monitor["width"], monitor["height"]))
-        
-        while not stop_event.is_set():
-            try:
-                img = np.array(sct.grab(monitor))
-                frame = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-                out.write(frame)
-            except Exception as e:
-                # Catch BitBlt errors in headless mode
-                pass
-            time.sleep(0.1)
-            time.sleep(0.1)
-            
-        out.release()
-
 def test_signup():
     result = {
         "test_status": "failed",
@@ -183,19 +160,13 @@ def test_signup():
         "confirmation": ""
     }
     
-    stop_recording = threading.Event()
-    video_filename = f"execution_record_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
-    recording_thread = threading.Thread(target=screen_recorder, args=(stop_recording, video_filename))
-    recording_thread.start()
-    print(f"Started screen recording to {video_filename}...")
-    
     # 1. Get temporary email via mail.tm
     print("Generating temporary email via mail.tm...")
     domain = get_mail_tm_domain()
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     random_digits = f"{random.randint(1000, 9999)}"
     email = f"user_{timestamp}_{random_digits}@{domain}"
-    password = "akhil!@#"
+    password = "Himanshu@2001"
     
     create_mail_tm_account(email, password)
     token = get_mail_tm_token(email, password)
@@ -1505,12 +1476,5 @@ def test_signup():
                 driver.quit()
             except: pass
             
-        print("Stopping screen recording...")
-        try:
-            stop_recording.set()
-            recording_thread.join()
-            print(f"Saved recording to {video_filename}")
-        except: pass
-        
     print(json.dumps(result, indent=2))
     assert result["test_status"] == "passed", f"Signup test failed: {result.get('errors')}"
