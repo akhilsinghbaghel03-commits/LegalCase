@@ -630,17 +630,6 @@ def perform_login(driver, wait, email=None, password=None):
                 create_mail_tm_account(email, password)
                 
             otp_info = get_otp_from_mail_tm(token, max_retries=15, ignore_mail_ids=existing_mail_ids, expected_length=len(visible_otp_fields))
-            if not otp_info:
-                # Try clicking Resend OTP once if delayed
-                try:
-                    resend_btn = driver.find_element(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'resend')] | //*[contains(text(), 'Resend OTP')]")
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", resend_btn)
-                    print("Clicked Resend OTP button.")
-                    time.sleep(2)
-                    otp_info = get_otp_from_mail_tm(token, max_retries=15, ignore_mail_ids=existing_mail_ids, expected_length=len(visible_otp_fields))
-                except Exception:
-                    pass
-                    
             if isinstance(otp_info, tuple):
                 otp_code = otp_info[0]
             else:

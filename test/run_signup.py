@@ -641,12 +641,7 @@ def test_signup():
                     print("Saving debug screenshot of Login OTP modal...")
                     driver.save_screenshot("login_otp_modal_debug.png")
                 
-                    try:
-                        resend_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'send')] | //*[@id='ResendBtn']")))
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", resend_btn)
-                        print("Clicked Send/Resend OTP button just in case Yorpro didn't send it automatically.")
-                    except Exception as e:
-                        print(f"Note: No Send/Resend button found or click failed: {e}")
+
                 
                     print("Polling mail.tm for Login OTP...")
                     login_otp_info = get_otp_from_mail_tm(token, ignore_mail_ids=existing_mail_ids)
