@@ -254,6 +254,9 @@ def test_signup():
         fill_field_by_keyword(driver, "company", f"Automated Test Corp {timestamp}{random_digits}")
                 
         # 5. Submit form using Javascript to bypass overlays (Click 'Send Verification Code')
+        print("Capturing existing email IDs before sending verification code...")
+        initial_mail_ids = get_current_mail_ids(token)
+        
         print("Clicking 'Send Verification Code'...")
         time.sleep(2) # Give UI a moment to validate
         submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Send Verification Code') or contains(., 'Next')]")))
@@ -294,19 +297,21 @@ def test_signup():
         if not otp_fields:
             raise Exception("OTP fields did not appear on the screen after signup.")
             
-        # 7. Poll API for OTP
-        print("Polling mail.tm for OTP...")
-        otp_info = get_otp_from_mail_tm(token)
+        # 7. Poll API for OTP (ignoring old emails)
+        print("Polling mail.tm for fresh OTP...")
+        otp_info = get_otp_from_mail_tm(token, ignore_mail_ids=initial_mail_ids)
         
         if not otp_info:
             raise Exception("Failed to receive OTP email or extract OTP code.")
         
         if isinstance(otp_info, tuple):
             otp_code = otp_info[0]
+            used_msg_id = otp_info[1]
         else:
             otp_code = otp_info
+            used_msg_id = None
             
-        print(f"Extracted OTP: {otp_code}")
+        print(f"Extracted Valid OTP: {otp_code}")
         # 7. Enter OTP
         print(f"Entering OTP: {otp_code}")
         try:
@@ -359,6 +364,22 @@ def test_signup():
                     verify_success = True
                     print("Transition to Trial / Payment detected!")
                     break
+
+                # Check if Invalid OTP banner is present and auto-resend if needed
+                invalid_banners = driver.find_elements(By.XPATH, "//*[contains(text(), 'Invalid OTP') or contains(text(), 'correct OTP') or contains(@class, 'feedback-message-error')]")
+                if any(b.is_displayed() for b in invalid_banners):
+                    print("Detected 'Invalid OTP' banner. Clicking 'Resend Code'...")
+                    resend_btns = driver.find_elements(By.XPATH, "//button[contains(., 'Resend Code') or contains(., 'Resend')] | //*[contains(text(), 'Resend Code')]")
+                    if resend_btns:
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", resend_btns[0])
+                        time.sleep(3)
+                        current_mail_ids = get_current_mail_ids(token)
+                        resend_otp_info = get_otp_from_mail_tm(token, ignore_mail_ids=current_mail_ids or [used_msg_id])
+                        if resend_otp_info:
+                            new_otp = resend_otp_info[0] if isinstance(resend_otp_info, tuple) else resend_otp_info
+                            print(f"Re-entering fresh OTP after resend: {new_otp}")
+                            enter_otp_digits(driver, new_otp)
+                            time.sleep(1)
 
                 btns = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | //button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | //*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']")
                 for btn in btns:

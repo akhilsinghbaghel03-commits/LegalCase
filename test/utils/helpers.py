@@ -184,7 +184,9 @@ def get_otp_from_mail_tm(token, max_retries=60, ignore_mail_ids=None, expected_l
         try:
             res = json.loads(urllib.request.urlopen(req, timeout=10).read().decode())
             msg_list = res.get('list', [])
-            print(f"  Inbox has {len(msg_list)} emails: {[m['mail_id'] for m in msg_list]}")
+            # Sort newest email first
+            msg_list.sort(key=lambda m: int(m.get('mail_id', 0)) if str(m.get('mail_id', '')).isdigit() else 0, reverse=True)
+            print(f"  Inbox has {len(msg_list)} emails (newest first): {[m['mail_id'] for m in msg_list]}")
             
             for msg in msg_list:
                 msg_id = msg['mail_id']
