@@ -354,21 +354,7 @@ def test_signup():
         for attempt in range(6):
             print(f"Submitting Verification (Attempt {attempt + 1}/6)...")
             try:
-                # 1. Check if Invalid OTP banner is present and auto-resend if needed
-                invalid_banners = driver.find_elements(By.XPATH, "//*[contains(text(), 'Invalid OTP') or contains(text(), 'correct OTP') or contains(@class, 'feedback-message-error')]")
-                if any(b.is_displayed() for b in invalid_banners):
-                    print("Detected 'Invalid OTP' banner. Clicking 'Resend Code'...")
-                    resend_btns = driver.find_elements(By.XPATH, "//button[contains(., 'Resend Code') or contains(., 'Resend')] | //*[contains(text(), 'Resend Code')]")
-                    if resend_btns:
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", resend_btns[0])
-                        time.sleep(3)
-                        current_mail_ids = get_current_mail_ids(token)
-                        resend_otp_info = get_otp_from_mail_tm(token, ignore_mail_ids=current_mail_ids or [used_msg_id])
-                        if resend_otp_info:
-                            new_otp = resend_otp_info[0] if isinstance(resend_otp_info, tuple) else resend_otp_info
-                            print(f"Re-entering fresh OTP after resend: {new_otp}")
-                            enter_otp_digits(driver, new_otp)
-                            time.sleep(1)
+
 
                 # 2. Find and click the 'Verify & Continue' button
                 verify_elements = driver.find_elements(
