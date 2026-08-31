@@ -1132,27 +1132,42 @@ def test_signup():
             select_dropdown("Type", "Mobile", index=1) # Second Type dropdown
             check_checkbox("Primary", index=1) # Second Primary checkbox
 
-            # Select Company in Person form
+            # Select Company in Person form using exact selector
             try:
                 print("Selecting company for Person...")
-                comp_dropdowns = driver.find_elements(
+                company_dropdown = driver.find_element(
                     By.XPATH,
-                    "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
-                    "//div[@class='vscomp-value' and contains(@data-tooltip, 'Company')] | "
-                    "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::select[1]"
+                    "//div[contains(@class,'vscomp-value') and normalize-space()='Select...']"
                 )
-                for c_el in comp_dropdowns:
-                    if c_el.is_displayed():
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", c_el)
-                        time.sleep(1)
-                        options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
-                        vis_opts = [o for o in options if o.is_displayed()]
-                        if vis_opts:
-                            driver.execute_script("arguments[0].click();", vis_opts[0])
-                        print("[SUCCESS] Selected company in Person form")
-                        break
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", company_dropdown)
+                company_dropdown.click()
+                time.sleep(1)
+                options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                vis_opts = [o for o in options if o.is_displayed()]
+                if vis_opts:
+                    driver.execute_script("arguments[0].click();", vis_opts[0])
+                print("[SUCCESS] Selected company in Person form")
             except Exception as comp_e:
-                print(f"Company selection notice: {comp_e}")
+                print(f"Company dropdown select note: {comp_e}, trying fallback...")
+                try:
+                    comp_dropdowns = driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::div[contains(@class, 'vscomp-toggle-button') or contains(@class, 'vscomp-wrapper')][1] | "
+                        "//div[@class='vscomp-value' and contains(@data-tooltip, 'Company')] | "
+                        "//*[contains(translate(text(), 'COMPANY', 'company'), 'company')]/following::select[1]"
+                    )
+                    for c_el in comp_dropdowns:
+                        if c_el.is_displayed():
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].click();", c_el)
+                            time.sleep(1)
+                            options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+                            vis_opts = [o for o in options if o.is_displayed()]
+                            if vis_opts:
+                                driver.execute_script("arguments[0].click();", vis_opts[0])
+                            print("[SUCCESS] Selected company in Person form via fallback")
+                            break
+                except Exception as fb_err:
+                    print(f"Fallback company selection note: {fb_err}")
             time.sleep(1)
 
             # Click Save multiple times (3 clicks)

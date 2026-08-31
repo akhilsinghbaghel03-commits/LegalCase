@@ -153,25 +153,70 @@ def test_matter_workflow(driver_setup):
     time.sleep(3)
     print(f"[SUCCESS] Company created: {company_name}")
     
-    # 4. Create Person with valid data, select Company, and click Save multiple times
+    # 4. Create Person Workflow
     print(f"Creating Person: {person_full}...")
-    if not click_button_by_texts(["new person", "person"]):
+    
+    # 4.1 Click on the Create Person button
+    if not click_button_by_texts(["new person", "create person", "person"]):
         if click_button_by_texts(["add new entry", "add new", "add", "+"]):
             time.sleep(1)
-            click_button_by_texts(["person", "new person", "add person"])
+            click_button_by_texts(["person", "new person", "add person", "create person"])
     time.sleep(2)
 
-    # Fill Person with valid data
+    # 4.2 Click on the Save button (on blank form)
+    print("Clicking Save button on blank form...")
+    click_button_by_texts(["save", "save & continue", "submit", "create person"])
+    time.sleep(2)
+
+    # 4.3 Enter the First Name
+    print(f"Entering First Name: {person_first}...")
     fill_by_label("First Name", person_first)
+    time.sleep(1)
+
+    # 4.4 Click on the Save button
+    print("Clicking Save button after First Name...")
+    click_button_by_texts(["save", "save & continue", "submit", "create person"])
+    time.sleep(2)
+
+    # 4.5 Enter the Last Name
+    print(f"Entering Last Name: {person_last}...")
     fill_by_label("Last Name", person_last)
+    time.sleep(1)
+
+    # 4.6 Enter all the data according to all field types
+    print(f"Entering Email: {person_email} and Phone: {person_phone}...")
     fill_by_label("Email", person_email)
     fill_by_label("Phone", person_phone)
-    
-    # Select Company in Person form
-    select_company_for_person(company_name)
     time.sleep(1)
     
-    # Save Person (Click Save multiple times)
+    # 4.7 Select Company using exact user XPath
+    print(f"Selecting Company ({company_name})...")
+    try:
+        company_dropdown = driver.find_element(
+            By.XPATH,
+            "//div[contains(@class,'vscomp-value') and normalize-space()='Select...']"
+        )
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", company_dropdown)
+        company_dropdown.click()
+        time.sleep(1)
+        
+        options = driver.find_elements(By.XPATH, "//*[contains(@class, 'vscomp-option')]")
+        vis_opts = [o for o in options if o.is_displayed()]
+        if vis_opts:
+            target_opt = vis_opts[0]
+            for opt in vis_opts:
+                if company_name.lower() in opt.text.lower():
+                    target_opt = opt
+                    break
+            driver.execute_script("arguments[0].click();", target_opt)
+            print(f"[SUCCESS] Selected company: {target_opt.text}")
+    except Exception as comp_err:
+        print(f"Primary company dropdown click note: {comp_err}, trying fallback...")
+        select_company_for_person(company_name)
+    time.sleep(1)
+    
+    # 4.8 Click on the Save button
+    print("Clicking Save button to save Person...")
     for click_i in range(1, 4):
         print(f"Clicking Save button for Person (click {click_i}/3)...")
         click_button_by_texts(["save", "save & continue", "submit", "create person"])
