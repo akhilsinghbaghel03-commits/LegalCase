@@ -460,19 +460,26 @@ def register_new_user(driver, wait):
             time.sleep(0.2)
         visible_otp_fields[-1].send_keys(Keys.TAB)
         
-    wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
-    password_inputs = driver.find_elements(By.XPATH, "//input[@type='password']")
-    visible_pws = [p for p in password_inputs if p.is_displayed() and p.size['width'] > 0]
+    wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='password']")))
+    popup_pws = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal') or contains(@class, 'dialog')]//input[@type='password']")
+    if popup_pws:
+        visible_pws = [p for p in popup_pws if p.is_displayed() and p.size['width'] > 0]
+    else:
+        visible_pws = [p for p in driver.find_elements(By.XPATH, "//input[@type='password']") if p.is_displayed() and p.size['width'] > 0]
     
     if visible_pws:
         for p in visible_pws:
             try:
-                p.click()
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p)
+                time.sleep(0.2)
                 p.clear()
                 p.send_keys(password)
                 set_input_value(driver, p, password)
             except Exception as e:
                 print(f"Password entry error: {e}")
+                try:
+                    set_input_value(driver, p, password)
+                except Exception: pass
             time.sleep(0.3)
             
         try:
