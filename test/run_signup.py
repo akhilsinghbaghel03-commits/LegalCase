@@ -234,14 +234,14 @@ def test_signup():
             submit_btn.click()
         except Exception:
             pass
-        try:
-            driver.execute_script("""
-                arguments[0].scrollIntoView({block: 'center'});
-                var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                arguments[0].dispatchEvent(ev);
-            """, submit_btn)
-        except Exception:
-            pass
+        # try:
+        #     driver.execute_script("""
+        #         arguments[0].scrollIntoView({block: 'center'});
+        #         var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+        #         arguments[0].dispatchEvent(ev);
+        #     """, submit_btn)
+        # except Exception:
+        #     pass
         
         # 6. Wait for OTP UI to appear with retry clicking
         print("Waiting for OTP fields...")
@@ -295,36 +295,48 @@ def test_signup():
         try:
             wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='password']")))
             popup_pws = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal') or contains(@class, 'dialog')]//input[@type='password']")
-            if popup_pws:
-                visible_pws = [p for p in popup_pws if p.is_displayed() and p.size['width'] > 0]
-            else:
-                visible_pws = [p for p in driver.find_elements(By.XPATH, "//input[@type='password']") if p.is_displayed() and p.size['width'] > 0]
+            if not popup_pws:
+                popup_pws = [p for p in driver.find_elements(By.XPATH, "//input[@type='password']") if p.is_displayed() and p.size['width'] > 0]
             
-            if visible_pws:
-                for p in visible_pws:
-                    try:
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p)
-                        time.sleep(0.2)
-                        p.clear()
-                        p.send_keys(password)
-                        set_input_value(driver, p, password)
-                    except Exception as e:
-                        print(f"Password field interaction fallback: {e}")
+            if popup_pws:
+                for p in popup_pws:
+                    if p.is_displayed():
                         try:
-                            set_input_value(driver, p, password)
-                        except Exception: pass
-                    time.sleep(0.3)
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p)
+                            time.sleep(0.2)
+                            p.clear()
+                            p.send_keys(password)
+                            driver.execute_script("""
+                                var el = arguments[0];
+                                var val = arguments[1];
+                                var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+                                if (setter && setter.set) {
+                                    setter.set.call(el, val);
+                                } else {
+                                    el.value = val;
+                                }
+                                el.dispatchEvent(new Event('input', { bubbles: true }));
+                                el.dispatchEvent(new Event('change', { bubbles: true }));
+                                el.dispatchEvent(new Event('blur', { bubbles: true }));
+                            """, p, password)
+                        except Exception as e:
+                            print(f"Password field interaction fallback: {e}")
+                            try:
+                                set_input_value(driver, p, password)
+                            except Exception: pass
+                        time.sleep(0.3)
                     
                 from selenium.webdriver.common.keys import Keys
                 try:
-                    visible_pws[-1].send_keys(Keys.TAB)
+                    popup_pws[-1].send_keys(Keys.TAB)
                 except Exception: pass
+                time.sleep(1)
         except Exception as e:
             print(f"Warning: Failed to fill password fields on OTP step: {e}")
             
         # 9. Submit Verification
-        print("Submitting OTP Verification...")
-        time.sleep(2)
+        print("Submitting OTP Verification (Clicking Verify & Continue)...")
+        time.sleep(1)
         
         verify_success = False
         for attempt in range(6):
@@ -354,11 +366,12 @@ def test_signup():
                 # Click the exact 'Verify & Continue' span or button
                 verify_elements = driver.find_elements(
                     By.XPATH,
+                    "//button[contains(., 'Verify & Continue') or contains(., 'Verify')] | "
+                    "//button[.//span[contains(text(), 'Verify & Continue')]] | "
                     "//span[@data-expression='' and contains(text(), 'Verify & Continue')] | "
                     "//span[contains(text(), 'Verify & Continue')] | "
-                    "//button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | "
-                    "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | "
-                    "//*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']"
+                    "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button[contains(., 'Verify') or contains(., 'Continue')] | "
+                    "//button[@type='submit']"
                 )
                 for el in verify_elements:
                     if el.is_displayed():
@@ -366,6 +379,10 @@ def test_signup():
                         time.sleep(0.3)
                         try:
                             el.click()
+                        except Exception:
+                            pass
+                        try:
+                            driver.execute_script("arguments[0].click();", el)
                         except Exception:
                             pass
                         try:
