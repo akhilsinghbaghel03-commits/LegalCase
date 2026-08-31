@@ -351,18 +351,30 @@ def test_signup():
                             enter_otp_digits(driver, new_otp)
                             time.sleep(1)
 
-                btns = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | //button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | //*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']")
-                for btn in btns:
-                    if btn.is_displayed():
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].removeAttribute('disabled');", btn)
-                        time.sleep(0.5)
+                # Click the exact 'Verify & Continue' span or button
+                verify_elements = driver.find_elements(
+                    By.XPATH,
+                    "//span[@data-expression='' and contains(text(), 'Verify & Continue')] | "
+                    "//span[contains(text(), 'Verify & Continue')] | "
+                    "//button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | "
+                    "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | "
+                    "//*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']"
+                )
+                for el in verify_elements:
+                    if el.is_displayed():
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].removeAttribute('disabled');", el)
+                        time.sleep(0.3)
                         try:
-                            btn.click()
+                            el.click()
                         except Exception:
+                            pass
+                        try:
                             driver.execute_script("""
                                 var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
                                 arguments[0].dispatchEvent(ev);
-                            """, btn)
+                            """, el)
+                        except Exception:
+                            pass
 
                 # Check if modal closed or transitioned
                 try:
