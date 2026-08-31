@@ -383,7 +383,7 @@ def register_new_user(driver, wait):
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     random_digits = f"{random.randint(1000, 9999)}"
     email = f"user_{timestamp}_{random_digits}@{domain}"
-    password = "TestPassword123!@#"
+    password = "Himanshu@2001"
     
     create_mail_tm_account(email, password)
     token = get_mail_tm_token(email, password)
@@ -403,10 +403,10 @@ def register_new_user(driver, wait):
     wait.until(EC.presence_of_element_located((By.TAG_NAME, "input")))
     time.sleep(2)
     
-    fill_field_by_keyword(driver, "first", "John")
-    fill_field_by_keyword(driver, "last", "Doe")
+    fill_field_by_keyword(driver, "first", "Akhil")
+    fill_field_by_keyword(driver, "last", "Baghel")
     fill_field_by_keyword(driver, "email", email)
-    fill_field_by_keyword(driver, "phone", "9876543210")
+    fill_field_by_keyword(driver, "phone", "9098864919")
     fill_field_by_keyword(driver, "company", f"Automated Test Corp {timestamp}{random_digits}")
     
     time.sleep(2)
