@@ -15,8 +15,8 @@ pipeline {
         ENVIRONMENT     = 'DEV'
         BROWSER         = 'Chrome'
         RECIPIENT_TO    = 'akhilsinghbaghel03@gmail.com'
-        RECIPIENT_CC    = ''
-        RECIPIENT_BCC   = ''
+        RECIPIENT_CC    = 'someone@example.com'
+        RECIPIENT_BCC   = 'another@example.com'
         PYTHON_EXE      = 'C:\\Program Files\\Python313\\python.exe'
     }
 
@@ -344,8 +344,8 @@ pipeline {
 
                 // 3. Send email via emailext with verified attachments
                 def recipientTo  = env.RECIPIENT_TO ?: 'akhilsinghbaghel03@gmail.com'
-                def recipientCc  = env.RECIPIENT_CC ?: ''
-                def recipientBcc = env.RECIPIENT_BCC ?: ''
+                def recipientCc  = env.RECIPIENT_CC ?: 'someone@example.com'
+                def recipientBcc = env.RECIPIENT_BCC ?: 'another@example.com'
                 def emailSubject = "[Automation Test Report] ${env.PROJECT_NAME} | ${env.ENVIRONMENT} | Build #${env.BUILD_NUMBER} | ${buildStatus}"
 
                 try {
@@ -356,7 +356,7 @@ pipeline {
                         subject: emailSubject,
                         body: emailBody,
                         mimeType: 'text/html',
-                        attachmentsPattern: 'reports/*.xlsx, reports/*.html, reports/*.xml',
+                        attachmentsPattern: 'reports/*.xlsx, reports/*.html, *.xlsx, *.html',
                         attachLog: (buildStatus != 'SUCCESS')
                     )
                     echo "Email sent successfully."
