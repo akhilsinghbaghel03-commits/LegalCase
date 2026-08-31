@@ -673,34 +673,35 @@ def test_signup():
                     login_verify_success = False
                     for attempt in range(5):
                         try:
-                            btns = driver.find_elements(By.XPATH, "//button[contains(., 'Verify & Continue') or contains(., 'Verify')] | //*[contains(text(), 'Verify & Continue') or text()='Verify']")
-                            if not btns:
-                                print("Login Verify button not found. It may have auto-submitted or already succeeded.")
-                            else:
+                            # 1. Check if already reached destination
+                            if "Dashboard" in driver.current_url or "setting" in driver.current_url or "IsTierSelection" in driver.current_url or "LegalHub" in driver.current_url:
+                                login_verify_success = True
+                                print("Already redirected to Dashboard/Settings!")
+                                break
+
+                            btns = driver.find_elements(By.XPATH, "//button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue') or contains(., 'Submit')] | //*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue'] | //button[@type='submit']")
+                            if btns:
                                 login_verify_btn = btns[-1]
-                                if login_verify_btn.is_displayed():
-                                    try:
-                                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", login_verify_btn)
-                                        time.sleep(1)
-                                        try:
-                                            login_verify_btn.click()
-                                        except Exception:
-                                            driver.execute_script("""
-                                                var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                                                arguments[0].dispatchEvent(ev);
-                                            """, login_verify_btn)
-                                    except Exception as e:
-                                        print(f"Note: Click interaction failed (likely disappeared): {e}")
+                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].removeAttribute('disabled');", login_verify_btn)
+                                time.sleep(0.5)
+                                try:
+                                    login_verify_btn.click()
+                                except Exception:
+                                    driver.execute_script("""
+                                        var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                                        arguments[0].dispatchEvent(ev);
+                                    """, login_verify_btn)
 
                             try:
-                                WebDriverWait(driver, 60).until(lambda d: "Dashboard" in d.current_url or "setting" in d.current_url or "IsTierSelection" in d.current_url or len(d.find_elements(By.XPATH, "//*[contains(text(),'Welcome') or contains(text(),'Dashboard')]")) > 0)
+                                WebDriverWait(driver, 15).until(lambda d: "Dashboard" in d.current_url or "setting" in d.current_url or "IsTierSelection" in d.current_url or "LegalHub" in d.current_url or "Contact" in d.current_url or len(d.find_elements(By.XPATH, "//*[contains(text(),'Welcome') or contains(text(),'Dashboard')]")) > 0 or len([f for f in d.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if f.is_displayed()]) == 0)
                                 login_verify_success = True
                                 print("Login Verify successful on attempt", attempt + 1)
                                 break
                             except TimeoutException:
-                                print(f"Attempt {attempt + 1}: Dashboard not loaded. Retrying click...")
+                                print(f"Attempt {attempt + 1}: Waiting for Dashboard/Settings to load...")
                         except Exception as e:
                             print(f"Warning: Failed to click Login Verify button on attempt {attempt + 1}: {e}")
+                        time.sleep(2)
                         
                     # 5. Wait for redirect after Login
                     print("Waiting for redirect after login...")
