@@ -291,34 +291,58 @@ def test_signup():
             print(f"Warning: OTP entry failed: {e}")
             
         # 8. Submit OTP/Password
-        print("Filling Password fields...")
+        print("Filling Password and Confirm Password fields...")
         try:
             wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='password']")))
-            popup_pws = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal') or contains(@class, 'dialog')]//input[@type='password']")
-            if popup_pws:
-                visible_pws = [p for p in popup_pws if p.is_displayed() and p.size['width'] > 0]
-            else:
-                visible_pws = [p for p in driver.find_elements(By.XPATH, "//input[@type='password']") if p.is_displayed() and p.size['width'] > 0]
+            time.sleep(1)
             
-            if visible_pws:
-                for p in visible_pws:
-                    try:
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p)
-                        time.sleep(0.2)
-                        p.clear()
-                        p.send_keys(password)
-                        set_input_value(driver, p, password)
-                    except Exception as e:
-                        print(f"Password field interaction fallback: {e}")
-                        try:
-                            set_input_value(driver, p, password)
-                        except Exception: pass
-                    time.sleep(0.3)
-                    
-                from selenium.webdriver.common.keys import Keys
-                try:
-                    visible_pws[-1].send_keys(Keys.TAB)
-                except Exception: pass
+            # Find all password fields in the popup
+            pw_fields = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal') or contains(@class, 'dialog')]//input[@type='password']")
+            if not pw_fields:
+                pw_fields = driver.find_elements(By.XPATH, "//input[@type='password']")
+            
+            visible_pws = [p for p in pw_fields if p.is_displayed()]
+            print(f"Found {len(visible_pws)} visible password fields.")
+            
+            # 1. Fill Password (first password field)
+            if len(visible_pws) >= 1:
+                p1 = visible_pws[0]
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p1)
+                time.sleep(0.3)
+                p1.clear()
+                p1.send_keys(password)
+                set_input_value(driver, p1, password)
+                print("Filled Password field.")
+                time.sleep(0.5)
+            
+            # 2. Fill Confirm Password (second password field)
+            if len(visible_pws) >= 2:
+                p2 = visible_pws[1]
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p2)
+                time.sleep(0.3)
+                p2.clear()
+                p2.send_keys(password)
+                set_input_value(driver, p2, password)
+                print("Filled Confirm Password field.")
+                time.sleep(0.5)
+            elif len(visible_pws) == 1:
+                # Look specifically for Confirm Password input
+                confirm_pws = driver.find_elements(By.XPATH, "//input[contains(@id, 'Confirm') or contains(@placeholder, 'Confirm') or @type='password']")
+                for cp in confirm_pws:
+                    if cp != visible_pws[0] and cp.is_displayed():
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", cp)
+                        time.sleep(0.3)
+                        cp.clear()
+                        cp.send_keys(password)
+                        set_input_value(driver, cp, password)
+                        print("Filled Confirm Password field via fallback.")
+                        break
+                        
+            from selenium.webdriver.common.keys import Keys
+            try:
+                visible_pws[-1].send_keys(Keys.TAB)
+            except Exception: pass
+            time.sleep(1)
         except Exception as e:
             print(f"Warning: Failed to fill password fields on OTP step: {e}")
             
@@ -351,14 +375,14 @@ def test_signup():
                             enter_otp_digits(driver, new_otp)
                             time.sleep(1)
 
-                # Click the exact 'Verify & Continue' span or button
+                # Click the 'Verify & Continue' button or span
                 verify_elements = driver.find_elements(
                     By.XPATH,
-                    # "//span[@data-expression='' and contains(text(), 'Verify & Continue')] | "
-                    # "//span[contains(text(), 'Verify & Continue')] | "
                     "//button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | "
-                    # "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | "
-                    # "//*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']"
+                    "//span[contains(text(), 'Verify & Continue')]/ancestor::button | "
+                    "//span[@data-expression='' and contains(text(), 'Verify & Continue')] | "
+                    "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | "
+                    "//*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']"
                 )
                 for el in verify_elements:
                     if el.is_displayed():
@@ -366,15 +390,13 @@ def test_signup():
                         time.sleep(0.3)
                         try:
                             el.click()
-                        except Exception:
-                            pass
+                        except Exception: pass
                         try:
                             driver.execute_script("""
                                 var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
                                 arguments[0].dispatchEvent(ev);
                             """, el)
-                        except Exception:
-                            pass
+                        except Exception: pass
 
                 # Check if modal closed or transitioned
                 try:
