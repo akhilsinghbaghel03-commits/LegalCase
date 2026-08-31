@@ -418,40 +418,20 @@ def test_signup():
                 print("Proceeding to Step 3...")
                 verify_success = True
         
-        # 9.5 Wait for and capture Success/Toast Message
-        print("Checking for success or toast messages...")
+        # 10. Navigate to Credit Card / Trial Screen (Step 3)
+        print("Navigating to Credit Card / Trial Details screen...")
         try:
-            try:
-                success_msg = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'successfully') or contains(text(), 'Success') or contains(@class, 'success')]")))
-                msg_text = success_msg.text
-                result["confirmation"] = f"Success message found: {msg_text}"
-                print(f"Success message found: {msg_text}")
-            except Exception as e:
-                print(f"Note: Could not capture pop-up success message (might have faded too fast): {e}")
-        except Exception:
-            print("No pop-up success message appeared within 10 seconds.")
-            
-        print("Waiting for OTP modal to close...")
-        try:
-            WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.XPATH, "//input[contains(@id,'OTP')]")))
-            print("OTP modal closed successfully.")
-        except Exception:
-            print("Warning: OTP modal did not close within timeout.")
-            
-        # 9.5 Verify Redirect to Payment / Trial page
-        print("Waiting for redirection after verification (up to 30s)...")
-        try:
-            # Wait for URL to change to something indicating payment/trial, or for Credit Card tab
             WebDriverWait(driver, 30).until(
-                lambda d: "Trial" in d.current_url or "setting" in d.current_url or len(d.find_elements(By.XPATH, "//*[contains(text(), 'Credit Card')]")) > 0
+                lambda d: "Trial" in d.current_url 
+                or "setting" in d.current_url 
+                or "stripe" in d.current_url
+                or len(d.find_elements(By.XPATH, "//*[contains(text(), 'Credit Card') or contains(text(), 'Payment') or contains(text(), 'Card number')]")) > 0
             )
-            print("Successfully transitioned from OTP page.")
+            print("Successfully navigated to Credit Card screen.")
         except Exception as e:
-            print(f"Warning: Redirect wait timed out: {e}")
+            print(f"Notice: Credit Card screen transition wait: {e}")
 
-        # 10. Explicitly wait for Step 3 to load before interacting
-        print("Waiting 5 seconds for Step 3 to load...")
-        time.sleep(5)
+        time.sleep(3)
         
         # DEBUG: Print window handles and iframes
         print(f"DEBUG: Current window handles: {driver.window_handles}")
