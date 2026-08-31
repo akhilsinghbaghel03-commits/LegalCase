@@ -469,31 +469,21 @@ def register_new_user(driver, wait):
         
     wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
     password_inputs = driver.find_elements(By.XPATH, "//input[@type='password']")
-    visible_pws = [p for p in password_inputs if p.size['width'] > 0 and p.size['height'] > 0]
+    visible_pws = [p for p in password_inputs if p.is_displayed() and p.size['width'] > 0]
     
     if visible_pws:
         for p in visible_pws:
             try:
-                driver.execute_script(f"""
-                    var input = arguments[0];
-                    var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-                    if (!nativeInputValueSetter) {{
-                        nativeInputValueSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value');
-                    }}
-                    if (nativeInputValueSetter && nativeInputValueSetter.set) {{
-                        nativeInputValueSetter.set.call(input, '{password}');
-                    }} else {{
-                        input.value = '{password}';
-                    }}
-                    input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    input.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                """, p)
+                p.click()
+                p.clear()
+                p.send_keys(password)
+                set_input_value(driver, p, password)
             except Exception as e:
-                print(f"JS password injection error: {e}")
-            time.sleep(0.2)
+                print(f"Password entry error: {e}")
+            time.sleep(0.3)
             
         try:
-            visible_pws[-1].send_keys(Keys.ENTER)
+            visible_pws[-1].send_keys(Keys.TAB)
         except Exception: pass
             
     time.sleep(2)

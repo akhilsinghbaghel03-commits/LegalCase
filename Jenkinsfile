@@ -343,16 +343,15 @@ pipeline {
                 }
 
                 // 3. Send email via emailext with verified attachments
-                def recipientTo  = env.RECIPIENT_TO ?: 'akhilsinghbaghel03@gmail.com'
-                def recipientCc  = env.RECIPIENT_CC ?: 'someone@example.com'
-                def recipientBcc = env.RECIPIENT_BCC ?: 'another@example.com'
+                def recipientsList = [env.RECIPIENT_TO, env.RECIPIENT_CC, env.RECIPIENT_BCC].findAll { it && !it.trim().isEmpty() }.join(', ')
+                if (!recipientsList || recipientsList.trim().isEmpty()) {
+                    recipientsList = 'akhilsinghbaghel03@gmail.com'
+                }
                 def emailSubject = "[Automation Test Report] ${env.PROJECT_NAME} | ${env.ENVIRONMENT} | Build #${env.BUILD_NUMBER} | ${buildStatus}"
 
                 try {
                     emailext (
-                        to: recipientTo,
-                        cc: recipientCc,
-                        bcc: recipientBcc,
+                        to: recipientsList,
                         subject: emailSubject,
                         body: emailBody,
                         mimeType: 'text/html',
