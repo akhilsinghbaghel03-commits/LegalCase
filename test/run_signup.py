@@ -295,48 +295,36 @@ def test_signup():
         try:
             wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='password']")))
             popup_pws = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal') or contains(@class, 'dialog')]//input[@type='password']")
-            if not popup_pws:
-                popup_pws = [p for p in driver.find_elements(By.XPATH, "//input[@type='password']") if p.is_displayed() and p.size['width'] > 0]
-            
             if popup_pws:
-                for p in popup_pws:
-                    if p.is_displayed():
+                visible_pws = [p for p in popup_pws if p.is_displayed() and p.size['width'] > 0]
+            else:
+                visible_pws = [p for p in driver.find_elements(By.XPATH, "//input[@type='password']") if p.is_displayed() and p.size['width'] > 0]
+            
+            if visible_pws:
+                for p in visible_pws:
+                    try:
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p)
+                        time.sleep(0.2)
+                        p.clear()
+                        p.send_keys(password)
+                        set_input_value(driver, p, password)
+                    except Exception as e:
+                        print(f"Password field interaction fallback: {e}")
                         try:
-                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].focus();", p)
-                            time.sleep(0.2)
-                            p.clear()
-                            p.send_keys(password)
-                            driver.execute_script("""
-                                var el = arguments[0];
-                                var val = arguments[1];
-                                var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-                                if (setter && setter.set) {
-                                    setter.set.call(el, val);
-                                } else {
-                                    el.value = val;
-                                }
-                                el.dispatchEvent(new Event('input', { bubbles: true }));
-                                el.dispatchEvent(new Event('change', { bubbles: true }));
-                                el.dispatchEvent(new Event('blur', { bubbles: true }));
-                            """, p, password)
-                        except Exception as e:
-                            print(f"Password field interaction fallback: {e}")
-                            try:
-                                set_input_value(driver, p, password)
-                            except Exception: pass
-                        time.sleep(0.3)
+                            set_input_value(driver, p, password)
+                        except Exception: pass
+                    time.sleep(0.3)
                     
                 from selenium.webdriver.common.keys import Keys
                 try:
-                    popup_pws[-1].send_keys(Keys.TAB)
+                    visible_pws[-1].send_keys(Keys.TAB)
                 except Exception: pass
-                time.sleep(1)
         except Exception as e:
             print(f"Warning: Failed to fill password fields on OTP step: {e}")
             
         # 9. Submit Verification
-        print("Submitting OTP Verification (Clicking Verify & Continue)...")
-        time.sleep(1)
+        print("Submitting OTP Verification...")
+        time.sleep(2)
         
         verify_success = False
         for attempt in range(6):
@@ -366,12 +354,11 @@ def test_signup():
                 # Click the exact 'Verify & Continue' span or button
                 verify_elements = driver.find_elements(
                     By.XPATH,
-                    "//button[contains(., 'Verify & Continue') or contains(., 'Verify')] | "
-                    "//button[.//span[contains(text(), 'Verify & Continue')]] | "
-                    "//span[@data-expression='' and contains(text(), 'Verify & Continue')] | "
-                    "//span[contains(text(), 'Verify & Continue')] | "
-                    "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button[contains(., 'Verify') or contains(., 'Continue')] | "
-                    "//button[@type='submit']"
+                    # "//span[@data-expression='' and contains(text(), 'Verify & Continue')] | "
+                    # "//span[contains(text(), 'Verify & Continue')] | "
+                    "//button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | "
+                    # "//div[contains(@class, 'popup') or contains(@class, 'modal')]//button | "
+                    # "//*[contains(text(), 'Verify & Continue') or text()='Verify' or text()='Continue']"
                 )
                 for el in verify_elements:
                     if el.is_displayed():
@@ -379,10 +366,6 @@ def test_signup():
                         time.sleep(0.3)
                         try:
                             el.click()
-                        except Exception:
-                            pass
-                        try:
-                            driver.execute_script("arguments[0].click();", el)
                         except Exception:
                             pass
                         try:
@@ -514,34 +497,41 @@ def test_signup():
             # Check the Terms of Service checkbox
             print("Checking Terms of Service checkbox...")
             try:
-                # Find the label text to click
-                terms_label = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@id='b5-b9-Checkbox1']")))
-                
-                print("Dispatching MouseEvent to Terms label...")
-                driver.execute_script("""
-                    var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                    arguments[0].dispatchEvent(ev);
-                """, terms_label)
-                
-                # Wait for React to process the checkbox click and enable the Pay button
-                time.sleep(5)
-                
-                print("Terms of Service checked.")
+                # Find the Terms checkbox or label dynamically
+                terms_checkboxes = driver.find_elements(By.XPATH, "//input[@type='checkbox'] | //input[contains(@id, 'Checkbox')] | //div[contains(@class, 'checkbox')] | //*[contains(text(), 'Terms') or contains(text(), 'Agree')]/preceding::input[@type='checkbox'][1] | //*[contains(text(), 'Terms') or contains(text(), 'Agree')]/ancestor::label")
+                for terms_el in terms_checkboxes:
+                    if terms_el.is_displayed():
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", terms_el)
+                        time.sleep(0.3)
+                        try:
+                            terms_el.click()
+                        except Exception: pass
+                        driver.execute_script("""
+                            var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                            arguments[0].dispatchEvent(ev);
+                        """, terms_el)
+                        print("Terms of Service checked.")
+                        break
+                time.sleep(2)
             except Exception as e:
                 print(f"Warning: Could not check Terms of Service: {e}")
                 
-            print("Looking for 'Pay $1' button...")
+            print("Looking for Pay / Start Trial button...")
             try:
-                pay_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Pay')]")
-    
-                # Click it via MouseEvent
-                print("Clicking Pay button via JS MouseEvent...")
-                driver.execute_script("""
-                    var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                    arguments[0].dispatchEvent(ev);
-                """, pay_btn)
-    
-                print("Clicked Pay button!")
+                pay_btns = driver.find_elements(By.XPATH, "//button[contains(., 'Pay') or contains(., 'Trial') or contains(., 'Continue') or contains(., 'Start')] | //*[contains(@class, 'btn') and (contains(., 'Pay') or contains(., 'Trial'))] | //button[@type='submit']")
+                for pay_btn in pay_btns:
+                    if pay_btn.is_displayed():
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'}); arguments[0].removeAttribute('disabled');", pay_btn)
+                        time.sleep(0.5)
+                        try:
+                            pay_btn.click()
+                        except Exception: pass
+                        driver.execute_script("""
+                            var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                            arguments[0].dispatchEvent(ev);
+                        """, pay_btn)
+                        print("Clicked Pay / Start Trial button!")
+                        break
             except Exception as e:
                 print(f"Warning: Could not click Pay button (might not be required): {e}")
                 
