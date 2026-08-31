@@ -228,30 +228,30 @@ def test_signup():
         initial_mail_ids = get_current_mail_ids(token)
         
         print("Clicking 'Send Verification Code'...")
-        time.sleep(2) # Give UI a moment to validate
+        time.sleep(3) # Give UI a moment to validate
         submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Send Verification Code') or contains(., 'Next')]")))
         try:
             submit_btn.click()
         except Exception:
             pass
-        try:
-            driver.execute_script("""
-                arguments[0].scrollIntoView({block: 'center'});
-                var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-                arguments[0].dispatchEvent(ev);
-            """, submit_btn)
-        except Exception:
-            pass
+        # try:
+        #     driver.execute_script("""
+        #         arguments[0].scrollIntoView({block: 'center'});
+        #         var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+        #         arguments[0].dispatchEvent(ev);
+        #     """, submit_btn)
+        # except Exception:
+        #     pass
         
         # 6. Wait for OTP UI to appear with retry clicking
         print("Waiting for OTP fields...")
         otp_inputs_found = False
-        for _ in range(30):
+        for _ in range(5):
             otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]")
             if otp_fields and any(f.is_displayed() for f in otp_fields):
                 otp_inputs_found = True
                 break
-            time.sleep(1)
+            time.sleep(2)
             try:
                 driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", submit_btn)
             except Exception:
