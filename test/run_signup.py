@@ -392,6 +392,9 @@ def test_signup():
                                 arguments[0].dispatchEvent(ev);
                             """, el)
                         except Exception: pass
+                        try:
+                            driver.execute_script("arguments[0].click();", el)
+                        except Exception: pass
                         print("Clicked 'Verify & Continue' button.")
                         break
 
