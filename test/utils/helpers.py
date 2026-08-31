@@ -410,6 +410,7 @@ def register_new_user(driver, wait):
     fill_field_by_keyword(driver, "company", f"Automated Test Corp {timestamp}{random_digits}")
     
     time.sleep(2)
+    initial_mail_ids = get_current_mail_ids(token)
     submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Send Verification Code') or contains(., 'Next')]")))
     try:
         submit_btn.click()
@@ -439,7 +440,7 @@ def register_new_user(driver, wait):
     if not otp_inputs_found:
         WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, "//input[contains(@id,'OTP')]")))
         
-    otp_info = get_otp_from_mail_tm(token)
+    otp_info = get_otp_from_mail_tm(token, ignore_mail_ids=initial_mail_ids)
 
     if isinstance(otp_info, tuple):
         otp_code = otp_info[0]
@@ -449,18 +450,8 @@ def register_new_user(driver, wait):
     if not otp_code:
         raise Exception("Failed to retrieve OTP for registration.")
         
-    # Enter OTP using ActionChains
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.common.keys import Keys
-    otp_fields = driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]")
-    visible_otp_fields = [f for f in otp_fields if f.is_displayed()]
-    if visible_otp_fields:
-        visible_otp_fields[0].click()
-        time.sleep(0.5)
-        for char in otp_code:
-            ActionChains(driver).send_keys(char).perform()
-            time.sleep(0.2)
-        visible_otp_fields[-1].send_keys(Keys.TAB)
+    # Enter OTP using enter_otp_digits
+    enter_otp_digits(driver, otp_code)
         
     wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='password']")))
     popup_pws = driver.find_elements(By.XPATH, "//div[contains(@class, 'popup') or contains(@class, 'modal') or contains(@class, 'dialog')]//input[@type='password']")
