@@ -234,14 +234,14 @@ def test_signup():
             submit_btn.click()
         except Exception:
             pass
-        # try:
-        #     driver.execute_script("""
-        #         arguments[0].scrollIntoView({block: 'center'});
-        #         var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-        #         arguments[0].dispatchEvent(ev);
-        #     """, submit_btn)
-        # except Exception:
-        #     pass
+        try:
+            driver.execute_script("""
+                arguments[0].scrollIntoView({block: 'center'});
+                var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+                arguments[0].dispatchEvent(ev);
+            """, submit_btn)
+        except Exception:
+            pass
         
         # 6. Wait for OTP UI to appear with retry clicking
         print("Waiting for OTP fields...")
@@ -251,7 +251,7 @@ def test_signup():
             if otp_fields and any(f.is_displayed() for f in otp_fields):
                 otp_inputs_found = True
                 break
-            time.sleep(2)
+            time.sleep(3)
             try:
                 driver.execute_script("var ev = new MouseEvent('click', { bubbles: true, cancelable: true, view: window }); arguments[0].dispatchEvent(ev);", submit_btn)
             except Exception:
