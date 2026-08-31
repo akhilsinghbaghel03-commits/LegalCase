@@ -348,18 +348,13 @@ def test_signup():
             
         # 9. Submit Verification
         print("Submitting OTP Verification...")
-        time.sleep(2)
+        time.sleep(1)
         
         verify_success = False
         for attempt in range(6):
+            print(f"Submitting Verification (Attempt {attempt + 1}/6)...")
             try:
-                # 1. Check if already transitioned
-                if "Trial" in driver.current_url or "setting" in driver.current_url or "Dashboard" in driver.current_url or "RedirectScreen" in driver.current_url or len(driver.find_elements(By.XPATH, "//*[contains(text(), 'Trial Details') or contains(text(), 'Credit Card') or contains(text(), 'Pay')]")) > 0:
-                    verify_success = True
-                    print("Transition to Trial / Payment detected!")
-                    break
-
-                # Check if Invalid OTP banner is present and auto-resend if needed
+                # 1. Check if Invalid OTP banner is present and auto-resend if needed
                 invalid_banners = driver.find_elements(By.XPATH, "//*[contains(text(), 'Invalid OTP') or contains(text(), 'correct OTP') or contains(@class, 'feedback-message-error')]")
                 if any(b.is_displayed() for b in invalid_banners):
                     print("Detected 'Invalid OTP' banner. Clicking 'Resend Code'...")
@@ -375,7 +370,7 @@ def test_signup():
                             enter_otp_digits(driver, new_otp)
                             time.sleep(1)
 
-                # Click the 'Verify & Continue' button or span
+                # 2. Find and click the 'Verify & Continue' button
                 verify_elements = driver.find_elements(
                     By.XPATH,
                     "//button[contains(., 'Verify & Continue') or contains(., 'Verify') or contains(., 'Continue')] | "
@@ -397,32 +392,30 @@ def test_signup():
                                 arguments[0].dispatchEvent(ev);
                             """, el)
                         except Exception: pass
+                        print("Clicked 'Verify & Continue' button.")
+                        break
 
-                # Check if modal closed or transitioned
+                # 3. Wait for OTP modal to close
                 try:
-                    WebDriverWait(driver, 15).until(
-                        lambda d: "Trial" in d.current_url 
-                        or "setting" in d.current_url 
-                        or "Dashboard" in d.current_url 
-                        or "RedirectScreen" in d.current_url
-                        or len(d.find_elements(By.XPATH, "//*[contains(text(), 'Trial Details') or contains(text(), 'Credit Card') or contains(text(), 'Pay')]")) > 0
-                        or len([e for e in d.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if e.is_displayed()]) == 0
+                    WebDriverWait(driver, 10).until(
+                        lambda d: len([e for e in d.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if e.is_displayed()]) == 0
                     )
                     verify_success = True
-                    print(f"Verify successful on attempt {attempt + 1}")
+                    print(f"OTP modal successfully closed on attempt {attempt + 1}!")
                     break
                 except TimeoutException:
-                    print(f"Attempt {attempt + 1}: Waiting for server response...")
-                    time.sleep(2)
+                    print(f"Attempt {attempt + 1}: Waiting for OTP modal to close...")
+                    time.sleep(1)
             except Exception as e:
                 print(f"Warning on attempt {attempt + 1}: {e}")
         
         if not verify_success:
             otp_visible = [e for e in driver.find_elements(By.XPATH, "//input[contains(@id,'OTP')]") if e.is_displayed()]
-            if not otp_visible or len(driver.find_elements(By.XPATH, "//*[contains(text(), 'Trial Details') or contains(text(), 'Credit Card') or contains(text(), 'Pay')]")) > 0:
+            if not otp_visible:
                 verify_success = True
+                print("OTP modal closed.")
             else:
-                print("Transitioning forward to Trial / Payment steps...")
+                print("Proceeding to Step 3...")
                 verify_success = True
         
         # 9.5 Wait for and capture Success/Toast Message
